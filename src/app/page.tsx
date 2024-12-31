@@ -1,11 +1,9 @@
-import Link from "next/link";
-
 export default function Home() {
   return (
-    <div>
+    <main className="w-full">
 
-      <Link href="/upload-operation">create</Link>
+      <h1>Home</h1>
 
-    </div>
+    </main>
   );
 }
