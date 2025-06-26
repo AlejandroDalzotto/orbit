@@ -1,3 +1,4 @@
+import Grainy from "@/components/Grainy";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -19,9 +20,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex font-geist-sans w-screen relative p-4 h-screen text-neutral-50 bg-neutral-950`}
       >
-        {children}
+        <Grainy />
+        <main className="flex w-full h-full overflow-x-hidden">
+          {children}
+        </main>
       </body>
     </html>
   );
