@@ -1,4 +1,5 @@
 import Grainy from "@/components/Grainy";
+import Navbar from "@/components/Navbar";
 import { Exo_2 } from "next/font/google";
 import "./globals.css";
 
@@ -15,10 +16,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${exo2.variable} antialiased flex font-exo w-screen relative p-4 h-screen text-neutral-50 bg-neutral-950`}
+        className={`${exo2.variable} antialiased flex flex-col font-exo w-screen relative h-screen text-neutral-50 bg-[rgb(9,7,7)]`}
       >
         <Grainy />
-        <main className="flex w-full h-full overflow-x-hidden">
+        <Navbar />
+        <main className="flex w-full h-full overflow-hidden">
           {children}
         </main>
       </body>

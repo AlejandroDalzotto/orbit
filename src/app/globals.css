@@ -3,3 +3,9 @@
 @theme inline {
   --font-exo: var(--font-exo-2);
 }
+
+@layer utilities {
+  .record-list:has(.record-item:hover) .record-item:not(:hover) {
+    @apply opacity-20;
+  }
+}
