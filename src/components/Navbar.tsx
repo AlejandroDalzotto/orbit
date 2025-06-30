@@ -8,7 +8,6 @@ export default function Navbar() {
       <div className="flex items-center gap-x-10 text-sm">
         <NavLink href="#">wallet</NavLink>
         <NavLink href="#">record list</NavLink>
-        <NavLink href="#">create</NavLink>
       </div>
     </nav>
   )
