@@ -1,0 +1,224 @@
+use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+use tauri::Manager;
+
+/// La versión del esquema
+#[derive(Serialize, Deserialize, Debug)]
+pub enum SchemaVersion {
+    V1,
+    V2,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum AccountType {
+    Cash,
+    #[serde(rename = "online wallet")]
+    OnlineWallet,
+    #[serde(rename = "bank account")]
+    BankAccount,
+    #[serde(rename = "credit card")]
+    CreditCard,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum Currency {
+    USD,
+    ARS,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Account {
+    pub id: String,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub account_type: AccountType,
+    pub balance: f64,
+    pub currency: Currency,
+    pub created_at: u64,
+    pub updated_at: u64,
+    pub transactions_count: i32,
+    pub transactions_id: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct WalletDB {
+    pub total_balance: f64,
+    pub accounts: HashMap<String, Account>,
+    pub schema_version: SchemaVersion,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum TransactionType {
+    Income,
+    Expense,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", tag = "category")]
+pub enum Transaction {
+    Basic {
+        id: String,
+        amount: f64,
+        currency: Currency,
+        date: u64,
+        created_at: u64,
+        updated_at: u64,
+        details: Option<String>,
+        r#type: TransactionType,
+    },
+    Supermarket {
+        id: String,
+        amount: f64,
+        currency: Currency,
+        date: u64,
+        created_at: u64,
+        updated_at: u64,
+        details: Option<String>,
+        r#type: TransactionType,
+        payment_method: Account,
+        store_name: String,
+        items: Vec<Item>,
+    },
+    Salary {
+        id: String,
+        amount: f64,
+        currency: Currency,
+        date: u64,
+        created_at: u64,
+        updated_at: u64,
+        details: Option<String>,
+        r#type: TransactionType,
+        payment_method: Account,
+        job: String,
+        payment_date: u64,
+        employer: Option<String>,
+        extra_details: Option<String>,
+    },
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Item {
+    name: String,
+    quantity: Option<u32>,
+    price: Option<f64>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct TransactionDB {
+    pub data: HashMap<String, Transaction>,
+    pub net_balance: f64,
+    pub total_income: f64,
+    pub total_expenses: f64,
+    pub schema_version: SchemaVersion,
+}
+
+#[tauri::command]
+pub async fn get_total_balance(app: tauri::AppHandle) -> Result<f64, String> {
+    let file_path = app
+        .path()
+        .app_local_data_dir()
+        .expect("Could not get app data dir");
+
+    let file_path = file_path.join("wallet.json");
+
+    if !file_path.exists() {
+        return Ok(0.0);
+    }
+
+    let content = std::fs::read_to_string(&file_path)
+        .map_err(|e| format!("Failed to read wallet file: {}", e))?;
+
+    let wallet: WalletDB = serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse wallet file: {}", e))?;
+
+    Ok(wallet.total_balance)
+}
+
+#[tauri::command]
+pub async fn get_accounts(app: tauri::AppHandle) -> Result<Vec<Account>, String> {
+    let file_path = app
+        .path()
+        .app_local_data_dir()
+        .expect("Could not get app data dir");
+
+    let file_path = file_path.join("wallet.json");
+
+    if !file_path.exists() {
+        return Ok(Vec::new());
+    }
+
+    let content = std::fs::read_to_string(&file_path)
+        .map_err(|e| format!("Failed to read wallet file: {}", e))?;
+
+    let wallet: WalletDB = serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse wallet file: {}", e))?;
+
+    Ok(wallet.accounts.iter()
+        .map(|(_, account)| account.clone())
+        .collect()
+    )
+}
+
+#[tauri::command]
+pub async fn get_account_history(
+    id: String,
+    app: tauri::AppHandle,
+) -> Result<Vec<Transaction>, String> {
+    let file_path = app
+        .path()
+        .app_local_data_dir()
+        .expect("Could not get app data dir");
+
+    let file_path = file_path.join("wallet.json");
+
+    if !file_path.exists() {
+        return Err("Wallet file does not exist".to_string());
+    }
+
+    let content = std::fs::read_to_string(&file_path)
+        .map_err(|e| format!("Failed to read wallet file: {}", e))?;
+
+    let wallet: WalletDB = serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse wallet file: {}", e))?;
+
+    let account = wallet.accounts.get(id.as_str());
+
+    if let Some(account) = account {
+        let transaction_file_path = file_path
+            .parent()
+            .ok_or("Could not get parent directory")?
+            .join("transactions.json");
+
+        if !transaction_file_path.exists() {
+            return Ok(Vec::new());
+        }
+
+        let transaction_content = std::fs::read_to_string(&transaction_file_path)
+            .map_err(|e| format!("Failed to read transactions file: {}", e))?;
+
+        let transaction_db: TransactionDB = serde_json::from_str(&transaction_content)
+            .map_err(|e| format!("Failed to parse transactions file: {}", e))?;
+
+        let transactions: Vec<Transaction> = account
+            .transactions_id
+            .iter()
+            .filter_map(|transaction_id| {
+                transaction_db
+                    .data
+                    .get(transaction_id)
+                    .cloned()
+            })
+            .collect();
+
+        Ok(transactions)
+    } else {
+        Err("Account not found".to_string())
+    }
+}
