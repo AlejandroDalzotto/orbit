@@ -71,6 +71,7 @@ pub enum Transaction {
         updated_at: u64,
         details: Option<String>,
         r#type: TransactionType,
+        affects_balance: bool,
     },
     Supermarket {
         id: String,
@@ -81,6 +82,7 @@ pub enum Transaction {
         updated_at: u64,
         details: Option<String>,
         r#type: TransactionType,
+        affects_balance: bool,
         payment_method: Account,
         store_name: String,
         items: Vec<Item>,
@@ -94,6 +96,7 @@ pub enum Transaction {
         updated_at: u64,
         details: Option<String>,
         r#type: TransactionType,
+        affects_balance: bool,
         payment_method: Account,
         job: String,
         payment_date: u64,
