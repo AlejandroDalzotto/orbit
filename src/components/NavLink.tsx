@@ -4,6 +4,6 @@ type NavLinkProps = LinkProps & { children: React.ReactNode };
 
 export default function NavLink({ children, ...props }: NavLinkProps) {
   return (
-    <Link {...props}>{children}</Link>
+    <Link {...props} className='hover:underline'>{children}</Link>
   )
 }
