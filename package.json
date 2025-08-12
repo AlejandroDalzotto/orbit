@@ -9,7 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.7.0",
     "clsx": "^2.1.1",
+    "lightweight-charts": "^5.0.8",
     "motion": "^12.19.1",
     "next": "15.3.4",
     "react": "^19.0.0",
