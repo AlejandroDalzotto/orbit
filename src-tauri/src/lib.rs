@@ -9,6 +9,7 @@ pub fn run() {
       commands::wallet::get_total_balance,
       commands::wallet::get_accounts,
       commands::wallet::get_account_history,
+      commands::wallet::add_account,
     ])
     .setup(|app| {
       if cfg!(debug_assertions) {

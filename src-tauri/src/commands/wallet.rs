@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use tauri::Manager;
+use tauri::{Manager};
+use uuid::Uuid;
+
+use crate::utils::atomic_write;
 
 /// La versión del esquema
 #[derive(Serialize, Deserialize, Debug)]
@@ -23,7 +26,6 @@ pub enum AccountType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
 pub enum Currency {
     USD,
     ARS,
@@ -42,6 +44,15 @@ pub struct Account {
     pub updated_at: u64,
     pub transactions_count: i32,
     pub transactions_id: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct NewAccount {
+    pub name: String,
+    pub r#type: AccountType,
+    pub balance: f64,
+    pub currency: Currency,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -72,6 +83,7 @@ pub enum Transaction {
         details: Option<String>,
         r#type: TransactionType,
         affects_balance: bool,
+        account_id: String,
     },
     Supermarket {
         id: String,
@@ -83,7 +95,7 @@ pub enum Transaction {
         details: Option<String>,
         r#type: TransactionType,
         affects_balance: bool,
-        payment_method: Account,
+        account_id: String,
         store_name: String,
         items: Vec<Item>,
     },
@@ -97,7 +109,8 @@ pub enum Transaction {
         details: Option<String>,
         r#type: TransactionType,
         affects_balance: bool,
-        payment_method: Account,
+        // todo: Create DTOs to avoid using String ids directly and provide useful information.
+        account_id: String,
         job: String,
         payment_date: u64,
         employer: Option<String>,
@@ -224,4 +237,58 @@ pub async fn get_account_history(
     } else {
         Err("Account not found".to_string())
     }
+}
+
+#[tauri::command]
+pub async fn add_account(
+    entry: NewAccount,
+    app: tauri::AppHandle,
+) -> Result<NewAccount, String> {
+    let file_path = app
+        .path()
+        .app_local_data_dir()
+        .expect("Could not get app data dir");
+
+    let file_path = file_path.join("wallet.json");
+
+    let mut wallet: WalletDB = if file_path.exists() {
+        let content = std::fs::read_to_string(&file_path)
+            .map_err(|e| format!("Failed to read wallet file: {}", e))?;
+        serde_json::from_str(&content)
+            .map_err(|e| format!("Failed to parse wallet file: {}", e))?
+    } else {
+        WalletDB {
+            total_balance: 0.0,
+            accounts: HashMap::new(),
+            schema_version: SchemaVersion::V1,
+        }
+    };
+
+    let id = Uuid::new_v4().to_string();
+
+    let account = Account {
+        id: id.clone(),
+        name: entry.name.clone(),
+        account_type: entry.r#type.clone(),
+        balance: entry.balance,
+        currency: entry.currency.clone(),
+        created_at: chrono::Utc::now().timestamp_millis() as u64,
+        updated_at: chrono::Utc::now().timestamp_millis() as u64,
+        transactions_count: 0,
+        transactions_id: Vec::new(),
+    };
+
+    wallet.accounts.insert(id, account);
+    wallet.total_balance += entry.balance;
+
+    let content = serde_json::to_string_pretty(&wallet)
+            .map_err(|e| format!("Failed to serialize wallet: {}", e))?;
+
+    atomic_write(
+        &file_path,
+        &content
+    )
+    .map_err(|e| format!("Failed to write wallet file: {}", e))?;
+
+    Ok(entry)
 }
