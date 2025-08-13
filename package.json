@@ -12,11 +12,12 @@
     "@tauri-apps/api": "^2.7.0",
     "clsx": "^2.1.1",
     "lightweight-charts": "^5.0.8",
-    "motion": "^12.19.1",
+    "lucide-react": "^0.539.0",
+    "motion": "^12.23.12",
     "next": "15.3.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "sonner": "^2.0.5"
+    "sonner": "^2.0.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
