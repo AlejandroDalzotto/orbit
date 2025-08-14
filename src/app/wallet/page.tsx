@@ -2,42 +2,13 @@
 
 // import AccountCard from "@/components/AccountCard";
 import ButtonAddWallet from "@/components/buttons/ButtonAddWallet";
-import { Account } from "@/lib/definitions";
-import { WalletService } from "@/services/wallet";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { motion } from "motion/react";
 import DropdownMenu from "@/components/DropdownMenu";
+import { useWallet } from "@/context/wallet-provider";
+import { motion } from "motion/react";
 
 export default function WalletPage() {
 
-  const [totalBalance, setTotalBalance] = useState<number | null>(null);
-  const [accounts, setAccounts] = useState<Account[] | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    async function fetchData() {
-      setIsLoading(true);
-
-      const service = new WalletService();
-
-      const [resultGetTotalBalance, resultGetAccounts] = await Promise.all([
-        service.getTotalBalance(),
-        service.getAccounts()
-      ]);
-
-      if (resultGetTotalBalance[0] || resultGetAccounts[0]) {
-        toast.error("Failed to fetch wallet data.");
-        return;
-      }
-
-      setTotalBalance(resultGetTotalBalance[1]);
-      setAccounts(resultGetAccounts[1]);
-    }
-
-    fetchData();
-    setIsLoading(false);
-  }, []);
+  const { accounts, isLoading, totalBalance } = useWallet()
 
   if (isLoading || totalBalance === null || accounts === null) {
     return <div className="flex items-center justify-center h-full">Loading...</div>;

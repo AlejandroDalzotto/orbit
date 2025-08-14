@@ -1,6 +1,7 @@
 "use client";
 
 import { useModal } from "@/context/modal-provider";
+import { useWallet } from "@/context/wallet-provider";
 import type { AccountType, Currency, NewAccount } from "@/lib/definitions";
 import { WalletService } from "@/services/wallet";
 import { useState } from "react";
@@ -9,33 +10,39 @@ import { toast } from "sonner";
 export default function ModalAddWallet() {
   const [isLoading, setIsLoading] = useState(false);
   const { close } = useModal();
-  
+  const { onAccountAdded } = useWallet();
+
   const handleSubmit = async (e: React.FormEvent) => {
     setIsLoading(true);
     e.preventDefault();
-    
+
     const formData = new FormData(e.target as HTMLFormElement);
-    
+
     const newAccount: NewAccount = {
       name: formData.get("name") as string,
       type: formData.get("type") as AccountType,
       currency: formData.get("currency") as Currency,
       balance: parseFloat(formData.get("balance") as string)
     }
-    
-    const service = new WalletService();
-    const [error, data] = await service.addAccount(newAccount);
-    console.log({ error, data });
-    if (error) {
-      toast.error(`Failed to create wallet: ${error.message}`);
+
+    try {
+      const service = new WalletService();
+      const [error, data] = await service.addAccount(newAccount);
+      if (error) {
+        toast.error(`Failed to create wallet: ${error.message}`);
+        setIsLoading(false);
+        return;
+      }
+
+      onAccountAdded(data)
+      toast.success(`Account ${data.name} saved successfully.`);
+      console.log('returned data from backend: ', data)
+    } catch (e) {
+      console.error({ e })
+    } finally {
       setIsLoading(false);
-      return;
+      close();
     }
-    
-    toast.success(data);
-    close();
-    
-    setIsLoading(false);
   }
 
   return (

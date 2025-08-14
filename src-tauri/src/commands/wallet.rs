@@ -36,8 +36,7 @@ pub enum Currency {
 pub struct Account {
     pub id: String,
     pub name: String,
-    #[serde(rename = "type")]
-    pub account_type: AccountType,
+    pub r#type: AccountType,
     pub balance: f64,
     pub currency: Currency,
     pub created_at: u64,
@@ -243,7 +242,7 @@ pub async fn get_account_history(
 pub async fn add_account(
     entry: NewAccount,
     app: tauri::AppHandle,
-) -> Result<NewAccount, String> {
+) -> Result<Account, String> {
     let file_path = app
         .path()
         .app_local_data_dir()
@@ -269,7 +268,7 @@ pub async fn add_account(
     let account = Account {
         id: id.clone(),
         name: entry.name.clone(),
-        account_type: entry.r#type.clone(),
+        r#type: entry.r#type.clone(),
         balance: entry.balance,
         currency: entry.currency.clone(),
         created_at: chrono::Utc::now().timestamp_millis() as u64,
@@ -278,7 +277,7 @@ pub async fn add_account(
         transactions_id: Vec::new(),
     };
 
-    wallet.accounts.insert(id, account);
+    wallet.accounts.insert(id, account.clone());
     wallet.total_balance += entry.balance;
 
     let content = serde_json::to_string_pretty(&wallet)
@@ -290,5 +289,5 @@ pub async fn add_account(
     )
     .map_err(|e| format!("Failed to write wallet file: {}", e))?;
 
-    Ok(entry)
+    Ok(account)
 }

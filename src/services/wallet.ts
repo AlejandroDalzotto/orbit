@@ -29,11 +29,10 @@ export class WalletService {
   //   throw new Error("Method not implemented.");
   // }
 
-  async addAccount(newEntry: NewAccount): Response<string> {
+  async addAccount(newEntry: NewAccount): Response<Account> {
     try {
-      const result = await invoke<NewAccount>("add_account", { entry: newEntry });
-      console.log({result});
-      return [null, `${result.name} created successfully`];
+      const result = await invoke<Account>("add_account", { entry: newEntry });
+      return [null, result];
     } catch (e) {
       return [e as Error, null];
     }
