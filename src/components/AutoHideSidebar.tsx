@@ -1,9 +1,10 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
-import { motion, AnimatePresence } from "motion/react"
-import { CreditCard, TrendingUp, BarChart3 } from "lucide-react"
-import { usePathname } from "next/navigation"
+import AppLogo from "@/components/AppLogo"
+import { BarChart3, CreditCard, TrendingUp } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
 
 // Navigation items
 const navigationItems = [
@@ -85,7 +86,7 @@ export function AutoHideSidebar() {
     <>
       {/* Invisible trigger zone */}
       <div
-        className="fixed left-0 top-0 w-12 h-full z-40 pointer-events-auto"
+        className="fixed top-0 left-0 z-40 w-12 h-full pointer-events-auto"
         style={{ pointerEvents: isVisible ? "none" : "auto" }}
       />
 
@@ -99,12 +100,13 @@ export function AutoHideSidebar() {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="fixed left-0 top-0 h-full w-64 bg-black border-r border-neutral-900 z-50"
+              className="fixed top-0 left-0 z-50 w-64 h-full bg-black border-r border-neutral-900"
               onMouseEnter={handleSidebarMouseEnter}
               onMouseLeave={handleSidebarMouseLeave}
             >
-              <div className="px-6 py-8 border-b border-neutral-900">
-                <h1 className="text-sm font-light tracking-[0.2em] text-white uppercase">MoneyTracker</h1>
+              <div className="flex items-center justify-between px-6 py-8 border-b border-neutral-900">
+                <h1 className="text-sm font-light tracking-[0.2em] text-white uppercase">ORBIT</h1>
+                <AppLogo />
               </div>
 
               <div className="p-6">
@@ -134,7 +136,7 @@ export function AutoHideSidebar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/10 z-40"
+              className="fixed inset-0 z-40 bg-black/10"
               onClick={() => setIsVisible(false)}
             />
           </>
