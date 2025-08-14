@@ -15,6 +15,8 @@ type AsyncVoidFunction = () => Promise<void>
 type WalletActions = {
   loadWallet: AsyncVoidFunction;
   onAccountAdded: (newEntry: Account) => void;
+  onAccountDeleted: (deletedAccount: Account) => void;
+  onAccountEdited: (editedAccount: Account) => void;
 }
 
 type WalletContextState = WalletState & WalletActions
@@ -25,6 +27,8 @@ export const WalletContext = createContext<WalletContextState>({
   accounts: null,
   totalBalance: null,
   isLoading: true,
+  onAccountDeleted: () => { },
+  onAccountEdited: () => { },
 });
 
 export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
@@ -54,9 +58,24 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const onAccountAdded = (newEntry: Account) => {
-  setAccounts(prev => prev ? [...prev, newEntry] : [newEntry]);
-  setTotalBalance(prev => prev !== null ? prev + newEntry.balance : newEntry.balance);
-};
+    setAccounts(prev => prev ? [...prev, newEntry] : [newEntry]);
+    setTotalBalance(prev => prev !== null ? prev + newEntry.balance : newEntry.balance);
+  };
+
+  const onAccountDeleted = (deletedAccount: Account) => {
+    setAccounts(prev => prev ? prev.filter(account => account.id !== deletedAccount.id) : null);
+    setTotalBalance(prev => prev !== null ? prev - deletedAccount.balance : null);
+  }
+
+  const onAccountEdited = (editedAccount: Account) => {
+    setAccounts(prev => prev ? prev.map(account => account.id === editedAccount.id ? editedAccount : account) : null);
+    setTotalBalance(prev => {
+      if (prev === null) return null;
+      const oldAccount = accounts?.find(account => account.id === editedAccount.id);
+      if (!oldAccount) return prev;
+      return prev - oldAccount.balance + editedAccount.balance;
+    });
+  }
 
   useEffect(() => {
     console.log("accounts updated:", accounts);
@@ -74,6 +93,8 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       totalBalance,
       loadWallet,
       onAccountAdded,
+      onAccountDeleted,
+      onAccountEdited
     }}>
       {children}
     </WalletContext.Provider>

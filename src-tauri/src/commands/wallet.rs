@@ -291,3 +291,95 @@ pub async fn add_account(
 
     Ok(account)
 }
+
+#[tauri::command]
+pub async fn delete_account(
+    id: String,
+    app: tauri::AppHandle,
+) -> Result<Account, String> {
+    let file_path = app
+        .path()
+        .app_local_data_dir()
+        .expect("Could not get app data dir");
+
+    let file_path = file_path.join("wallet.json");
+
+    if !file_path.exists() {
+        return Err("Wallet file does not exist".to_string());
+    }
+
+    let content = std::fs::read_to_string(&file_path)
+        .map_err(|e| format!("Failed to read wallet file: {}", e))?;
+
+    let mut wallet: WalletDB = serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse wallet file: {}", e))?;
+
+    if let Some(account) = wallet.accounts.remove(&id) {
+        wallet.total_balance -= account.balance;
+
+        let updated_content = serde_json::to_string_pretty(&wallet)
+            .map_err(|e| format!("Failed to serialize wallet: {}", e))?;
+
+        atomic_write(
+            &file_path,
+            &updated_content
+        )
+        .map_err(|e| format!("Failed to write wallet file: {}", e))?;
+
+        Ok(account)
+    } else {
+        Err("Account not found".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn edit_account(
+    id: String,
+    entry: NewAccount,
+    app: tauri::AppHandle,
+) -> Result<Account, String> {
+    let file_path = app
+        .path()
+        .app_local_data_dir()
+        .expect("Could not get app data dir");
+
+    let file_path = file_path.join("wallet.json");
+
+    if !file_path.exists() {
+        return Err("Wallet file does not exist".to_string());
+    }
+
+    let content = std::fs::read_to_string(&file_path)
+        .map_err(|e| format!("Failed to read wallet file: {}", e))?;
+
+    let mut wallet: WalletDB = serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse wallet file: {}", e))?;
+
+    if let Some(account) = wallet.accounts.get_mut(&id) {
+        wallet.total_balance -= account.balance;
+        
+        account.name = entry.name.clone();
+        account.r#type = entry.r#type.clone();
+        account.balance = entry.balance;
+        account.currency = entry.currency.clone();
+        account.updated_at = chrono::Utc::now().timestamp_millis() as u64;
+
+        wallet.total_balance += entry.balance;
+
+        // Clone the account before ending the mutable borrow
+        let updated_account = account.clone();
+
+        let updated_content = serde_json::to_string_pretty(&wallet)
+            .map_err(|e| format!("Failed to serialize wallet: {}", e))?;
+
+        atomic_write(
+            &file_path,
+            &updated_content
+        )
+        .map_err(|e| format!("Failed to write wallet file: {}", e))?;
+
+        Ok(updated_account)
+    } else {
+        Err("Account not found".to_string())
+    }
+}

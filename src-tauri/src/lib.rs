@@ -10,6 +10,8 @@ pub fn run() {
       commands::wallet::get_accounts,
       commands::wallet::get_account_history,
       commands::wallet::add_account,
+      commands::wallet::delete_account,
+      commands::wallet::edit_account,
     ])
     .setup(|app| {
       if cfg!(debug_assertions) {

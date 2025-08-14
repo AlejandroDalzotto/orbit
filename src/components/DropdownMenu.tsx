@@ -1,9 +1,15 @@
 "use client";
 
+import DropdownMenuButton from "@/components/buttons/DropdownMenuButton";
+import ModalEditWallet from "@/components/modals/ModalEditWallet";
+import { useModal } from "@/context/modal-provider";
+import { useWallet } from "@/context/wallet-provider";
 import { Account } from "@/lib/definitions";
-import { Edit, MoreHorizontal, Trash2, Eye, Plus, Minus } from "lucide-react";
+import { WalletService } from "@/services/wallet";
+import { Edit, Eye, MoreHorizontal, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 export default function DropdownMenu({
   account
@@ -14,6 +20,10 @@ export default function DropdownMenu({
   const [renderAbove, setRenderAbove] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const service = new WalletService();
+  const { onAccountDeleted } = useWallet();
+  const { open } = useModal();
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -68,29 +78,42 @@ export default function DropdownMenu({
             className={`absolute min-w-48 bg-black *:py-1 *:px-4 *:rounded p-1 border rounded-md border-neutral-800
               ${renderAbove ? "bottom-full mb-2" : "top-full mt-2"} -right-1/2`}
           >
-            <button className="flex items-center w-full text-neutral-300 gap-x-2 hover:bg-neutral-900 hover:text-white">
-              <Plus className="w-3 h-3" />
-              Add amount
-            </button>
-            <button className="flex items-center w-full text-neutral-300 gap-x-2 hover:bg-neutral-900 hover:text-white">
-              <Minus className="w-3 h-3" />
-              Subtract amount
-            </button>
-            <button className="flex items-center w-full text-neutral-300 gap-x-2 hover:bg-neutral-900 hover:text-white">
-              <Eye className="w-3 h-3" />
-              History
-            </button>
-            <button className="flex items-center w-full text-neutral-300 gap-x-2 hover:bg-neutral-900 hover:text-white">
-              <Edit className="w-3 h-3" />
-              Edit
-            </button>
-            <button className="flex items-center w-full text-red-400 gap-x-2 hover:bg-neutral-900 hover:text-red-300">
-              <Trash2 className="w-3 h-3" />
-              Delete
-            </button>
+            <DropdownMenuButton
+              text="Transactions"
+              color="neutral"
+              icon={<Eye className="w-3 h-3" />}
+              onClick={() => { }}
+            />
+            <DropdownMenuButton
+              text="Edit"
+              color="neutral"
+              icon={<Edit className="w-3 h-3" />}
+              onClick={() => {
+                setIsMenuOpen(false);
+                open(<ModalEditWallet account={account} />)
+              }}
+            />
+            <DropdownMenuButton
+              text="Delete"
+              color="red"
+              icon={<Trash2 className="w-3 h-3" />}
+              onClick={() => {
+                if (confirm(`Are you sure you want to delete the account "${account.name}"? This action cannot be undone.`)) {
+                  service.deleteAccount(account.id).then(([error, result]) => {
+                    if (error) {
+                      toast.error(`Error deleting account: ${error.message}`);
+                    } else {
+                      onAccountDeleted(result);
+                      toast.success(`Account ${result.name} deleted successfully.\n${result.transactionsCount} transactions will be marked as paid with an unknown method.`);
+                    }
+                  });
+                }
+              }}
+            />
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 }
+

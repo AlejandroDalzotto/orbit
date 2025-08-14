@@ -38,11 +38,21 @@ export class WalletService {
     }
   }
 
-  // updateAccount(id: string, newValues: NewAccount): Promise<boolean> {
-  //   throw new Error("Method not implemented.");
-  // }
+  async editAccount(id: string, newValues: NewAccount): Response<Account> {
+    try {
+      const result = await invoke<Account>("edit_account", { id, entry: newValues });
+      return [null, result];
+    } catch (e) {
+      return [e as Error, null];
+    }
+  }
 
-  // deleteAccount(id: string): Promise<boolean> {
-  //   throw new Error("Method not implemented.");
-  // }
+  async deleteAccount(id: string): Response<Account> {
+    try {
+      const result = await invoke<Account>("delete_account", { id });
+      return [null, result];
+    } catch (e) {
+      return [e as Error, null];
+    }
+  }
 }
