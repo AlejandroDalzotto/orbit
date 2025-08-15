@@ -81,6 +81,7 @@ export default function DropdownMenu({
             <DropdownMenuButton
               text="Transactions"
               color="neutral"
+              disabled
               icon={<Eye className="w-3 h-3" />}
               onClick={() => { }}
             />
