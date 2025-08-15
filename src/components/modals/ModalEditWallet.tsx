@@ -48,14 +48,14 @@ export default function ModalEditWallet({ account }: { account: Account }) {
 
   return (
     <div className="p-6 rounded shadow-lg bg-neutral-900 w-96">
-      <h2 className="mb-4 text-xl font-bold">Add New Wallet</h2>
+      <h2 className="mb-4 text-xl font-bold">Edit account</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-y-4">
         <div className="flex flex-col">
-          <label htmlFor="name" className="mb-1 font-semibold">Wallet Name</label>
+          <label htmlFor="name" className="mb-1 font-semibold">Account Name</label>
           <input defaultValue={account.name} type="text" id="name" name="name" className="p-2 border border-gray-300 rounded" placeholder="e.g., My Cash Wallet" />
         </div>
         <div className="flex flex-col">
-          <label htmlFor="type" className="mb-1 font-semibold">Wallet Type</label>
+          <label htmlFor="type" className="mb-1 font-semibold">Account Type</label>
           <select defaultValue={account.type} id="type" name="type" className="p-2 text-white border border-gray-700 rounded bg-neutral-800">
             <option value="cash">Cash</option>
             <option value="online wallet">Online Wallet</option>
@@ -71,10 +71,12 @@ export default function ModalEditWallet({ account }: { account: Account }) {
           </select>
         </div>
         <div className="flex flex-col">
-          <label htmlFor="balance" className="mb-1 font-semibold">Initial Balance</label>
+          <label htmlFor="balance" className="mb-1 font-semibold">Balance</label>
           <input defaultValue={account.balance} type="number" name="balance" id="balance" className="p-2 border border-gray-300 rounded" placeholder="e.g., 1000.00" />
         </div>
-        <button type="submit" disabled={isLoading} className="p-2 text-white bg-blue-500 rounded hover:bg-blue-600 transition-hover disabled:opacity-50">Create Wallet</button>
+        <button type="submit" disabled={isLoading} className="p-2 text-white bg-blue-500 rounded hover:bg-blue-600 transition-hover disabled:opacity-50">
+          Save Changes
+        </button>
       </form>
     </div>
   )
