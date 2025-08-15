@@ -4,7 +4,7 @@ import DropdownMenuButton from "@/components/buttons/DropdownMenuButton";
 import ModalEditWallet from "@/components/modals/ModalEditWallet";
 import { useModal } from "@/context/modal-provider";
 import { useWallet } from "@/context/wallet-provider";
-import { Account } from "@/lib/definitions";
+import { Account } from "@/models/wallet";
 import { WalletService } from "@/services/wallet";
 import { Edit, Eye, MoreHorizontal, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";

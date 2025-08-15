@@ -1,5 +1,5 @@
-import type { Account } from '@/lib/definitions'
 import DropdownMenu from "@/components/DropdownMenu";
+import type { Account } from "@/models/wallet";
 import { motion } from 'motion/react';
 
 export default function AccountCard({ account, animationDelay }: { account: Account, animationDelay: number }) {

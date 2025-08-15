@@ -2,7 +2,7 @@
 
 import { useModal } from "@/context/modal-provider";
 import { useWallet } from "@/context/wallet-provider";
-import type { Account, AccountType, Currency, NewAccount } from "@/lib/definitions";
+import type { Account, AccountType, EditAccount } from "@/models/wallet";
 import { WalletService } from "@/services/wallet";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -19,10 +19,9 @@ export default function ModalEditWallet({ account }: { account: Account }) {
 
     const formData = new FormData(e.target as HTMLFormElement);
 
-    const newAccount: NewAccount = {
+    const newAccount: EditAccount = {
       name: formData.get("name") as string,
       type: formData.get("type") as AccountType,
-      currency: formData.get("currency") as Currency,
       balance: parseFloat(formData.get("balance") as string)
     }
 
@@ -61,13 +60,6 @@ export default function ModalEditWallet({ account }: { account: Account }) {
             <option value="online wallet">Online Wallet</option>
             <option value="bank account">Bank Account</option>
             <option value="credit card">Credit Card</option>
-          </select>
-        </div>
-        <div className="flex flex-col">
-          <label htmlFor="currency" className="mb-1 font-semibold">Currency</label>
-          <select defaultValue={account.currency} id="currency" name="currency" className="p-2 text-white border border-gray-700 rounded bg-neutral-800">
-            <option value="USD">USD</option>
-            <option value="ARS">ARS</option>
           </select>
         </div>
         <div className="flex flex-col">

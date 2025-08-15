@@ -1,7 +1,6 @@
-import { Account, NewAccount } from "@/lib/definitions";
+import type { Response } from "@/lib/types";
+import type { Account, CreateAccount, EditAccount } from "@/models/wallet";
 import { invoke } from "@tauri-apps/api/core";
-
-type Response<T> = Promise<[Error, null] | [null, T]>;
 
 export class WalletService {
   async getTotalBalance(): Response<number> {
@@ -29,7 +28,7 @@ export class WalletService {
   //   throw new Error("Method not implemented.");
   // }
 
-  async addAccount(newEntry: NewAccount): Response<Account> {
+  async addAccount(newEntry: CreateAccount): Response<Account> {
     try {
       const result = await invoke<Account>("add_account", { entry: newEntry });
       return [null, result];
@@ -38,7 +37,7 @@ export class WalletService {
     }
   }
 
-  async editAccount(id: string, newValues: NewAccount): Response<Account> {
+  async editAccount(id: string, newValues: EditAccount): Response<Account> {
     try {
       const result = await invoke<Account>("edit_account", { id, entry: newValues });
       return [null, result];

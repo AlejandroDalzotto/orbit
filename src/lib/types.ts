@@ -1,0 +1,1 @@
+export type Response<T> = Promise<[Error, null] | [null, T]>;

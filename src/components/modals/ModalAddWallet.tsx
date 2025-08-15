@@ -2,7 +2,8 @@
 
 import { useModal } from "@/context/modal-provider";
 import { useWallet } from "@/context/wallet-provider";
-import type { AccountType, Currency, NewAccount } from "@/lib/definitions";
+import type { Currency } from "@/models/transaction";
+import type { AccountType, CreateAccount } from "@/models/wallet";
 import { WalletService } from "@/services/wallet";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -18,7 +19,7 @@ export default function ModalAddWallet() {
 
     const formData = new FormData(e.target as HTMLFormElement);
 
-    const newAccount: NewAccount = {
+    const newAccount: CreateAccount = {
       name: formData.get("name") as string,
       type: formData.get("type") as AccountType,
       currency: formData.get("currency") as Currency,

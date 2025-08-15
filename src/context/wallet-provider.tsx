@@ -1,5 +1,5 @@
 "use client";
-import { Account } from "@/lib/definitions";
+import type { Account } from "@/models/wallet";
 import { WalletService } from "@/services/wallet";
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
