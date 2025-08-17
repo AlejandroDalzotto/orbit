@@ -13,6 +13,9 @@ pub fn run() {
       commands::wallet::add_account,
       commands::wallet::delete_account,
       commands::wallet::edit_account,
+
+      commands::transactions::get_transactions,
+      commands::transactions::get_financial_summary,
     ])
     .setup(|app| {
       if cfg!(debug_assertions) {
