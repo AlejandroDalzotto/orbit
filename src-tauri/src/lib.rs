@@ -16,6 +16,9 @@ pub fn run() {
 
       commands::transactions::get_transactions,
       commands::transactions::get_financial_summary,
+      commands::transactions::get_transaction_by_id,
+      commands::transactions::add_transaction,
+      commands::transactions::delete_transaction,
     ])
     .setup(|app| {
       if cfg!(debug_assertions) {
