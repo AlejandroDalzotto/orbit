@@ -446,15 +446,15 @@ export default function Home() {
         setFinancialSummany(resultFinancialSummary[1])
         setTransactions(resultTransactions[1])
 
+
       } catch (error) {
         console.error('Error fetching transactions:', error);
       }
     }
     fetchData();
 
-  }, []);
 
-  console.log({ transactions, financialSummany })
+  }, []);
 
   if (!financialSummany || !transactions) {
     return (

@@ -10,6 +10,20 @@ export enum TransactionType {
   Expense = 'expense',
 }
 
+export enum TransactionCategory {
+  Basic = 'basic',
+  Salary = 'salary',
+  Supermarket = 'supermarket',
+  Freelance = 'freelance',
+  Food = 'food',
+  Housing = 'housing',
+  Transportation = 'transportation',
+  Investment = 'investment',
+  Healthcare = 'healthcare',
+  Utilities = 'utilities',
+  Entertainment = 'entertainment',
+}
+
 /**
  * Represents an item purchased in a transaction
  */
@@ -37,11 +51,12 @@ export interface BasicTransaction {
   updatedAt: number
   /** Additional notes or description for the transaction */
   details: string | null
-  type: string // Assuming TransactionType is a string for simplicity
+  type: TransactionType
   /** Whether this transaction affects the account balance */
   affectsBalance: boolean
   /** ID of the account/wallet this transaction belongs to */
   accountId: string
+  category: TransactionCategory
 }
 
 /**
@@ -56,6 +71,7 @@ export interface SalaryTransaction extends BasicTransaction {
   employer: string | null
   /** Additional employment-related details */
   extraDetails: string | null
+  category: TransactionCategory.Salary
 }
 
 /**
@@ -66,6 +82,7 @@ export interface SupermarketTransaction extends BasicTransaction {
   storeName: string
   /** List of items purchased with quantities and prices */
   items: Item[]
+  category: TransactionCategory.Supermarket
 }
 
 /**
@@ -76,6 +93,7 @@ interface FreelanceTransaction extends BasicTransaction {
   client?: string
   /** Project name or description */
   project?: string
+  category: TransactionCategory.Freelance
 }
 
 /**
@@ -86,6 +104,7 @@ interface FoodTransaction extends BasicTransaction {
   items?: string[]
   /** Name of the restaurant or food establishment */
   store?: string
+  category: TransactionCategory.Food
 }
 
 /**
@@ -96,6 +115,7 @@ interface HousingTransaction extends BasicTransaction {
   property?: string
   /** Landlord or property manager name */
   landlord?: string
+  category: TransactionCategory.Housing
 }
 
 /**
@@ -108,6 +128,7 @@ interface TransportationTransaction extends BasicTransaction {
   mileage?: number
   /** Location of the transaction */
   location?: string
+  category: TransactionCategory.Transportation
 }
 
 /**
@@ -118,6 +139,7 @@ interface EntertainmentTransaction extends BasicTransaction {
   venue?: string
   /** Event name or description */
   event?: string
+  category: TransactionCategory.Entertainment
 }
 
 /**
@@ -128,18 +150,7 @@ interface HealthcareTransaction extends BasicTransaction {
   provider?: string
   /** Treatment or service received */
   treatment?: string
-}
-
-/**
- * Investment transaction (stocks, bonds, crypto)
- */
-interface InvestmentTransaction extends BasicTransaction {
-  /** Asset name or ticker symbol */
-  asset?: string
-  /** Number of shares or units purchased/sold */
-  shares?: number
-  /** Price per share or unit */
-  price?: number
+  category: TransactionCategory.Healthcare
 }
 
 /**
@@ -152,6 +163,7 @@ interface UtilitiesTransaction extends BasicTransaction {
   service?: string
   /** Billing period covered */
   period?: string
+  category: TransactionCategory.Utilities
 }
 
 
@@ -162,7 +174,6 @@ export type Transaction =
   | FoodTransaction
   | HousingTransaction
   | TransportationTransaction
-  | InvestmentTransaction
   | HealthcareTransaction
   | UtilitiesTransaction
   | EntertainmentTransaction;
@@ -173,16 +184,25 @@ export type FinancialSummany = {
   totalExpenses: number;
 }
 
-export type CreateTransaction = Omit<Transaction,
-  'id'
-  | 'createdAt'
-  | 'updatedAt'
-  | 'accountId'
->;
+export type CreateTransaction =
+  | Omit<SalaryTransaction, 'id' | 'createdAt' | 'updatedAt'>
+  | Omit<SupermarketTransaction, 'id' | 'createdAt' | 'updatedAt'>
+  | Omit<FreelanceTransaction, 'id' | 'createdAt' | 'updatedAt'>
+  | Omit<FoodTransaction, 'id' | 'createdAt' | 'updatedAt'>
+  | Omit<HousingTransaction, 'id' | 'createdAt' | 'updatedAt'>
+  | Omit<TransportationTransaction, 'id' | 'createdAt' | 'updatedAt'>
+  | Omit<HealthcareTransaction, 'id' | 'createdAt' | 'updatedAt'>
+  | Omit<UtilitiesTransaction, 'id' | 'createdAt' | 'updatedAt'>
+  | Omit<EntertainmentTransaction, 'id' | 'createdAt' | 'updatedAt'>;
 
-export type UpdateTransaction = Omit<Transaction,
-  'id'
-  | 'createdAt'
-  | 'updatedAt'
-  | 'accountId'
->;
+
+export type EditTransaction =
+  | Omit<SalaryTransaction, 'id' | 'createdAt' | 'updatedAt' | 'currency'>
+  | Omit<SupermarketTransaction, 'id' | 'createdAt' | 'updatedAt' | 'currency'>
+  | Omit<FreelanceTransaction, 'id' | 'createdAt' | 'updatedAt' | 'currency'>
+  | Omit<FoodTransaction, 'id' | 'createdAt' | 'updatedAt' | 'currency'>
+  | Omit<HousingTransaction, 'id' | 'createdAt' | 'updatedAt' | 'currency'>
+  | Omit<TransportationTransaction, 'id' | 'createdAt' | 'updatedAt' | 'currency'>
+  | Omit<HealthcareTransaction, 'id' | 'createdAt' | 'updatedAt' | 'currency'>
+  | Omit<UtilitiesTransaction, 'id' | 'createdAt' | 'updatedAt' | 'currency'>
+  | Omit<EntertainmentTransaction, 'id' | 'createdAt' | 'updatedAt' | 'currency'>;

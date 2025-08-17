@@ -37,7 +37,6 @@ export default function ModalAddWallet() {
 
       onAccountAdded(data)
       toast.success(`Account ${data.name} saved successfully.`);
-      console.log('returned data from backend: ', data)
     } catch (e) {
       console.error({ e })
     } finally {

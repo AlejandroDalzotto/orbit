@@ -78,11 +78,6 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   useEffect(() => {
-    console.log("accounts updated:", accounts);
-    console.log("total accounts:", accounts?.length);
-  }, [accounts]);
-
-  useEffect(() => {
     loadWallet();
   }, [])
 
