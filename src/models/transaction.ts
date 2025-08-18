@@ -18,7 +18,6 @@ export enum TransactionCategory {
   Food = 'food',
   Housing = 'housing',
   Transportation = 'transportation',
-  Investment = 'investment',
   Healthcare = 'healthcare',
   Utilities = 'utilities',
   Entertainment = 'entertainment',
