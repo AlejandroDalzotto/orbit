@@ -23,20 +23,21 @@ pub enum AccountType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum Currency {
     USD,
     ARS,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "lowercase")]
 pub enum TransactionType {
     Income,
     Expense,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase", tag = "category")]
+#[serde(tag = "category", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum Transaction {
     Basic {
         id: String,
@@ -45,7 +46,7 @@ pub enum Transaction {
         date: u64,
         created_at: u64,
         updated_at: u64,
-        details: Option<String>,
+        details: String,
         r#type: TransactionType,
         affects_balance: bool,
         account_id: String,
@@ -57,7 +58,7 @@ pub enum Transaction {
         date: u64,
         created_at: u64,
         updated_at: u64,
-        details: Option<String>,
+        details: String,
         r#type: TransactionType,
         affects_balance: bool,
         account_id: String,
@@ -71,53 +72,76 @@ pub enum Transaction {
         date: u64,
         created_at: u64,
         updated_at: u64,
-        details: Option<String>,
+        details: String,
         r#type: TransactionType,
         affects_balance: bool,
         // todo: Create DTOs to avoid using String ids directly and provide useful information.
         account_id: String,
         job: String,
-        payment_date: u64,
         employer: Option<String>,
         extra_details: Option<String>,
+    },
+    Freelance {
+        id: String,
+        created_at: u64,
+        updated_at: u64,
+        amount: f64,
+        currency: Currency,
+        date: u64,
+        details: String,
+        r#type: TransactionType,
+        affects_balance: bool,
+        account_id: String,
+        client: Option<String>,
+        project: Option<String>,
     },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase", tag = "category")]
+#[serde(tag = "category", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum NewTransaction {
     Basic {
         amount: f64,
         currency: Currency,
         date: u64,
-        details: Option<String>,
+        details: String,
         r#type: TransactionType,
         affects_balance: bool,
         account_id: String,
+    },
+    Salary {
+        amount: f64,
+        currency: Currency,
+        date: u64,
+        details: String,
+        r#type: TransactionType,
+        affects_balance: bool,
+        account_id: String,
+        job: String,
+        employer: Option<String>,
+        extra_details: Option<String>,
     },
     Supermarket {
         amount: f64,
         currency: Currency,
         date: u64,
-        details: Option<String>,
+        details: String,
         r#type: TransactionType,
         affects_balance: bool,
         account_id: String,
         store_name: String,
         items: Vec<Item>,
     },
-    Salary {
+    Freelance {
         amount: f64,
         currency: Currency,
         date: u64,
-        details: Option<String>,
+        details: String,
         r#type: TransactionType,
         affects_balance: bool,
         account_id: String,
-        job: String,
-        payment_date: u64,
-        employer: Option<String>,
-        extra_details: Option<String>,
+        client: Option<String>,
+        project: Option<String>,
     },
 }
 
@@ -126,6 +150,7 @@ impl Transaction {
         let result = match &self {
             Transaction::Basic { r#type, .. }
             | Transaction::Supermarket { r#type, .. }
+            | Transaction::Freelance { r#type, .. }
             | Transaction::Salary { r#type, .. } => r#type == &TransactionType::Income,
         };
         result
@@ -135,6 +160,7 @@ impl Transaction {
         match self {
             Transaction::Basic { amount, .. }
             | Transaction::Supermarket { amount, .. }
+            | Transaction::Freelance { amount, .. }
             | Transaction::Salary { amount, .. } => *amount,
         }
     }
@@ -143,6 +169,7 @@ impl Transaction {
         match self {
             Transaction::Basic { id, .. }
             | Transaction::Supermarket { id, .. }
+            | Transaction::Freelance { id, .. }
             | Transaction::Salary { id, .. } => id.clone(),
         }
     }
@@ -205,7 +232,6 @@ impl Transaction {
                 affects_balance,
                 account_id,
                 job,
-                payment_date,
                 employer,
                 extra_details,
             } => Transaction::Salary {
@@ -220,9 +246,32 @@ impl Transaction {
                 affects_balance,
                 account_id,
                 job,
-                payment_date,
                 employer,
                 extra_details,
+            },
+            NewTransaction::Freelance {
+                amount,
+                currency,
+                date,
+                details,
+                r#type,
+                affects_balance,
+                account_id,
+                client,
+                project,
+            } => Transaction::Freelance {
+                id,
+                amount,
+                currency,
+                date,
+                created_at: now,
+                updated_at: now,
+                details,
+                r#type,
+                affects_balance,
+                account_id,
+                client,
+                project,
             },
         }
     }

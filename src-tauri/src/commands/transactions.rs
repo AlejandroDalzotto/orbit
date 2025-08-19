@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
-use crate::{models::{
-    enums::{NewTransaction, SchemaVersion, Transaction, TransactionType},
-    transaction::{self, FinancialSummary, TransactionDB},
-}, utils::atomic_write};
+use crate::{
+    models::{
+        enums::{NewTransaction, SchemaVersion, Transaction},
+        transaction::{FinancialSummary, TransactionDB},
+    },
+    utils::atomic_write,
+};
 use tauri::Manager;
-use uuid::Uuid;
 
 #[tauri::command]
 pub async fn get_transactions(app: tauri::AppHandle) -> Result<Vec<Transaction>, String> {
@@ -72,7 +74,10 @@ pub async fn get_financial_summary(app: tauri::AppHandle) -> Result<FinancialSum
 }
 
 #[tauri::command]
-pub async fn get_transaction_by_id(id: String, app: tauri::AppHandle) -> Result<Transaction, String> {
+pub async fn get_transaction_by_id(
+    id: String,
+    app: tauri::AppHandle,
+) -> Result<Transaction, String> {
     let file_path = app
         .path()
         .app_local_data_dir()
@@ -101,11 +106,15 @@ pub async fn get_transaction_by_id(id: String, app: tauri::AppHandle) -> Result<
     } else {
         Err("Transaction not found".to_string())
     }
-
 }
 
 #[tauri::command]
-pub async fn add_transaction(entry: NewTransaction, app: tauri::AppHandle) -> Result<Transaction, String> {
+pub async fn add_transaction(
+    entry: NewTransaction,
+    app: tauri::AppHandle,
+) -> Result<Transaction, String> {
+    println!("entry: {:#?}", &entry);
+
     let file_path = app
         .path()
         .app_local_data_dir()
@@ -117,43 +126,40 @@ pub async fn add_transaction(entry: NewTransaction, app: tauri::AppHandle) -> Re
         let content = std::fs::read_to_string(&file_path)
             .map_err(|e| format!("Failed to read wallet file: {}", e))?;
 
-        serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse wallet file: {}", e))?
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse wallet file: {}", e))?
     } else {
         TransactionDB {
             data: HashMap::new(),
             net_balance: 0.0,
             total_expenses: 0.0,
             total_income: 0.0,
-            schema_version: SchemaVersion::V1
+            schema_version: SchemaVersion::V1,
         }
     };
 
     let new_transaction = Transaction::new_from(entry);
 
-    if let Some(transaction) = transaction_db.data.insert(new_transaction.get_id(), new_transaction) {
+    println!("new entry with all fields: {:#?}", &new_transaction);
 
-        if transaction.is_income() {
-            transaction_db.total_income += transaction.get_amount();
-        } else {
-            transaction_db.total_expenses += transaction.get_amount();
-        }
+    transaction_db
+        .data
+        .insert(new_transaction.get_id(), new_transaction.clone());
 
-        transaction_db.net_balance = transaction_db.total_income - transaction_db.total_expenses;
+    if new_transaction.is_income() {
+        transaction_db.total_income += new_transaction.get_amount();
+    } else {
+        transaction_db.total_expenses += new_transaction.get_amount();
+    }
 
-        let updated_content = serde_json::to_string_pretty(&transaction_db)
-            .map_err(|e| format!("Failed to serialize wallet: {}", e))?;
+    transaction_db.net_balance = transaction_db.total_income - transaction_db.total_expenses;
 
-        atomic_write(
-            &file_path,
-            &updated_content
-        )
+    let updated_content = serde_json::to_string_pretty(&transaction_db)
+        .map_err(|e| format!("Failed to serialize wallet: {}", e))?;
+
+    atomic_write(&file_path, &updated_content)
         .map_err(|e| format!("Failed to write wallet file: {}", e))?;
 
-        Ok(transaction)
-    } else {
-        Err("Error while trying to create the new transaction".to_string())
-    }
+    Ok(new_transaction)
 }
 
 #[tauri::command]
@@ -176,7 +182,6 @@ pub async fn delete_transaction(id: String, app: tauri::AppHandle) -> Result<Tra
         .map_err(|e| format!("Failed to parse wallet file: {}", e))?;
 
     if let Some(transaction) = transaction_db.data.remove(&id) {
-
         if transaction.is_income() {
             transaction_db.total_income -= transaction.get_amount();
         } else {
@@ -188,11 +193,8 @@ pub async fn delete_transaction(id: String, app: tauri::AppHandle) -> Result<Tra
         let updated_content = serde_json::to_string_pretty(&transaction_db)
             .map_err(|e| format!("Failed to serialize wallet: {}", e))?;
 
-        atomic_write(
-            &file_path,
-            &updated_content
-        )
-        .map_err(|e| format!("Failed to write wallet file: {}", e))?;
+        atomic_write(&file_path, &updated_content)
+            .map_err(|e| format!("Failed to write wallet file: {}", e))?;
 
         Ok(transaction)
     } else {

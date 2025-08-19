@@ -1,5 +1,5 @@
 import type { Response } from "@/lib/types";
-import { Transaction } from "@/models/transaction";
+import { CreateTransaction, Transaction } from "@/models/transaction";
 import { invoke } from "@tauri-apps/api/core";
 
 export class TransactionService {
@@ -8,7 +8,7 @@ export class TransactionService {
       const data = await invoke("get_transactions") as Transaction[];
       return [null, data];
     } catch (error) {
-      return [error as Error, null];
+      return [{ msg: error as string }, null];
     }
   }
 
@@ -25,7 +25,7 @@ export class TransactionService {
       };
       return [null, data];
     } catch (error) {
-      return [error as Error, null];
+      return [{ msg: error as string }, null];
     }
   }
 
@@ -40,16 +40,20 @@ export class TransactionService {
     return transaction;
   }
 
-  // async addTransaction(newEntry: NewTransaction): Promise<boolean> {
+  async addTransaction(newEntry: CreateTransaction): Response<Transaction> {
 
-  //   // Validate the new entry
-  //   if (newEntry.amount <= 0) {
-  //     throw new Error("Invalid transaction data");
-  //   }
+    // Validate the new entry
+    if (newEntry.amount <= 0) {
+      return [{ msg: "The amount should be a positive value more than zero." }, null]
+    }
 
-  //   const result = await invoke("add_transaction", { newEntry }) as boolean;
-  //   return result;
-  // }
+    try {
+      const result = await invoke("add_transaction", { entry: newEntry }) as Transaction;
+      return [null, result];
+    } catch (error) {
+      return [{ msg: error as string }, null]
+    }
+  }
 
   // updateTransaction(id: string, newValues: NewTransaction): Promise<boolean> {
   //   throw new Error("Method not implemented.");
