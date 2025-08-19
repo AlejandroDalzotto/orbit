@@ -1,10 +1,11 @@
 "use client";
 
 import ButtonAddTransaction from '@/components/buttons/ButtonAddTransaction';
+import TransactionList from '@/components/TransactionList';
 import { FinancialSummany, Transaction } from '@/models/transaction';
 import { TransactionService } from '@/services/transaction';
 import { ArrowUpRight, Search, TrendingDown, TrendingUp } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 
 export default function Home() {
@@ -139,35 +140,8 @@ export default function Home() {
 
       </motion.div>
 
-      {transactions !== null && transactions.length > 0 ? (
-        <AnimatePresence>
-          <div className="space-y-2">
-            {transactions.map((transaction, index) => (
-              <motion.div
-                key={transaction.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ delay: index * 0.05 }}
-              >
+      <TransactionList />
 
-              </motion.div>
-            ))}
-          </div>
-        </AnimatePresence>
-      ) : null}
-
-      {transactions === null || transactions.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center py-16 text-center"
-        >
-          <div className="w-1 h-16 mb-8 bg-neutral-800" />
-          <p className="mb-8 font-light text-neutral-500">No transactions registered yet</p>
-          <ButtonAddTransaction text='Add your first transaction' />
-        </motion.div>
-      ) : null}
     </motion.div>
   );
 }
