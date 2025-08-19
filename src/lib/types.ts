@@ -1,1 +1,5 @@
-export type Response<T> = Promise<[Error, null] | [null, T]>;
+export type AppError = {
+  msg: string
+}
+
+export type Response<T> = Promise<[AppError, null] | [null, T]>;
