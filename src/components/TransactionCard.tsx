@@ -8,7 +8,7 @@ export default function TransactionCard({ transaction, animationDelay }: { trans
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: animationDelay }}
-      className="flex items-center justify-between px-0 py-6 transition-colors border-b border-neutral-900 hover:border-neutral-800"
+      className="flex items-center justify-between px-5 py-6 transition-colors border-b border-neutral-900 hover:border-neutral-800"
     >
       <div className="flex-1">
         <div className="flex items-center space-x-4">
