@@ -1,23 +1,22 @@
-"use client";
+"use client"
 
-import ButtonAddTransaction from "@/components/buttons/ButtonAddTransaction";
-import TransactionCard from "@/components/TransactionCard";
-import { useTransactions } from "@/hooks/useTransactions";
-import { Transaction } from "@/models/transaction";
-import { ChevronDown } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import ButtonAddTransaction from "@/components/buttons/ButtonAddTransaction"
+import TransactionCard from "@/components/TransactionCard"
+import { useTransactions, useTransactionSearch } from "@/hooks/useTransactions"
+import type { Transaction } from "@/models/transaction"
+import { ChevronDown } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import { useEffect, useRef, useState } from "react"
 
 type SortOption = "latest" | "oldest" | "balance" | "income" | "expenses"
 
 function sortTransactions(
   transactions: Transaction[] | null,
-  sortBy: "balance" | "latest" | "oldest" | "expenses" | "income"
+  sortBy: "balance" | "latest" | "oldest" | "expenses" | "income",
 ) {
   if (!transactions) return null
 
-  const getTime = (date?: string | number) =>
-    new Date(date || 0).getTime()
+  const getTime = (date?: string | number) => new Date(date || 0).getTime()
 
   let result = [...transactions]
 
@@ -35,25 +34,39 @@ function sortTransactions(
       break
 
     case "income":
-      result = result.filter(t => t.type === "income")
+      result = result.filter((t) => t.type === "income")
       break
 
     case "expenses":
-      result = result.filter(t => t.type === "expense")
+      result = result.filter((t) => t.type === "expense")
       break
   }
 
   return result
 }
 
-export default function TransactionList() {
+interface TransactionListProps {
+  searchQuery?: string
+}
 
-  const { transactions, error, isLoading } = useTransactions({ offset: 0, limit: 50 })
+export default function TransactionList({ searchQuery = "" }: TransactionListProps) {
+  const {
+    transactions,
+    error: transactionsError,
+    isLoading: transactionsLoading,
+  } = useTransactions({ offset: 0, limit: 50 })
+  const {
+    searchResults,
+    error: searchError,
+    isLoading: searchLoading,
+    hasQuery,
+  } = useTransactionSearch({ query: searchQuery })
+
   const [sortBy, setSortBy] = useState<SortOption>("latest")
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
-  const menuRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   const sortOptions = [
     { value: "balance" as const, label: "Highest Balance" },
@@ -63,10 +76,14 @@ export default function TransactionList() {
     { value: "expenses" as const, label: "Expenses only" },
   ]
 
-  const sortedTransactions = sortTransactions(transactions, sortBy);
+  const currentTransactions = hasQuery ? searchResults : transactions
+  const currentError = hasQuery ? searchError : transactionsError
+  const currentLoading = hasQuery ? searchLoading : transactionsLoading
+
+  const sortedTransactions = sortTransactions(currentTransactions, sortBy)
 
   useEffect(() => {
-    if (!isMenuOpen) return;
+    if (!isMenuOpen) return
 
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -75,27 +92,33 @@ export default function TransactionList() {
         buttonRef.current &&
         !buttonRef.current.contains(event.target as Node)
       ) {
-        setIsMenuOpen(false);
+        setIsMenuOpen(false)
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside)
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isMenuOpen]);
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isMenuOpen])
 
-  if (isLoading) return <div>Loading...</div>
-  if (error) return <div>Something went wrong while trying to got transactions data.</div>
+  if (currentLoading) return <div className="text-neutral-400 font-mono">Loading...</div>
+  if (currentError)
+    return <div className="text-red-400 font-mono">Something went wrong while trying to get transactions data.</div>
 
   return (
     <>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-light tracking-wider text-neutral-200">Transactions</h2>
+          <div className="flex items-center space-x-3">
+            <h2 className="font-light tracking-wider text-neutral-200">Transactions</h2>
+            {hasQuery && (
+              <span className="text-xs text-neutral-500 font-mono">{currentTransactions?.length} results</span>
+            )}
+          </div>
 
-          {transactions !== null && transactions.length > 0 ? (
+          {currentTransactions !== null && currentTransactions.length > 0 ? (
             <AnimatePresence>
               <div className="flex items-center space-x-2">
                 <p className="text-xs text-neutral-500">sort by</p>
@@ -105,12 +128,9 @@ export default function TransactionList() {
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
                     className="w-full px-3 py-2 pr-8 font-mono text-sm font-light text-left transition-colors bg-black border rounded-md appearance-none cursor-pointer border-neutral-800 hover:border-neutral-700 text-neutral-400 hover:text-white focus:outline-none focus:ring-1 focus:ring-neutral-700"
                   >
-                    {sortOptions.find(option => option.value === sortBy)?.label}
+                    {sortOptions.find((option) => option.value === sortBy)?.label}
                     <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <motion.div
-                        animate={{ rotate: isMenuOpen ? 180 : 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
+                      <motion.div animate={{ rotate: isMenuOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
                         <ChevronDown className="w-3 h-3 text-neutral-400" />
                       </motion.div>
                     </div>
@@ -132,10 +152,11 @@ export default function TransactionList() {
                               setSortBy(option.value)
                               setIsMenuOpen(false)
                             }}
-                            className={`w-full text-left px-3 py-2 text-sm font-mono font-light transition-colors first:rounded-t-md last:rounded-b-md ${sortBy === option.value
-                              ? 'bg-neutral-900 text-white'
-                              : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
-                              }`}
+                            className={`w-full text-left px-3 py-2 text-sm font-mono font-light transition-colors first:rounded-t-md last:rounded-b-md ${
+                              sortBy === option.value
+                                ? "bg-neutral-900 text-white"
+                                : "text-neutral-400 hover:text-white hover:bg-neutral-900"
+                            }`}
                           >
                             {option.label}
                           </button>
@@ -151,22 +172,24 @@ export default function TransactionList() {
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-96">
           {sortedTransactions !== null
-            ? sortedTransactions.map((transaction, index) => {
-              return <TransactionCard key={transaction.id} transaction={transaction} animationDelay={index * 0.1} />
-            })
+            ? sortedTransactions.map((transaction, index) => (
+                <TransactionCard key={transaction.id} transaction={transaction} animationDelay={index * 0.1} />
+              ))
             : null}
         </div>
       </div>
 
-      {transactions === null || transactions.length === 0 ? (
+      {currentTransactions === null || currentTransactions.length === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex flex-col items-center py-16 text-center"
         >
           <div className="w-1 h-16 mb-8 bg-neutral-800" />
-          <p className="mb-8 font-light text-neutral-500">No transactions registered yet</p>
-          <ButtonAddTransaction text='Add your first transaction' />
+          <p className="mb-8 font-light text-neutral-500">
+            {hasQuery ? "No transactions found for your search" : "No transactions registered yet"}
+          </p>
+          {!hasQuery && <ButtonAddTransaction text="Add your first transaction" />}
         </motion.div>
       ) : null}
     </>

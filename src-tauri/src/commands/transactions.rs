@@ -201,3 +201,48 @@ pub async fn delete_transaction(id: String, app: tauri::AppHandle) -> Result<Tra
         Err("Transaction not found".to_string())
     }
 }
+
+#[tauri::command]
+pub async fn search_transactions(
+    app: tauri::AppHandle,
+    query: String,
+) -> Result<Vec<Transaction>, String> {
+    let file_path = app
+        .path()
+        .app_local_data_dir()
+        .expect("Could not get app data dir");
+
+    let file_path = file_path.join("transactions.json");
+
+    let transaction_db = if file_path.exists() {
+        let content = std::fs::read_to_string(&file_path)
+            .map_err(|e| format!("Failed to read transactions file: {}", e))?;
+
+        serde_json::from_str(&content)
+            .map_err(|e| format!("Failed to parse transactions file: {}", e))?
+    } else {
+        TransactionDB {
+            data: HashMap::new(),
+            net_balance: 0.0,
+            total_expenses: 0.0,
+            total_income: 0.0,
+            schema_version: SchemaVersion::V1,
+        }
+    };
+
+    let query_lower = query.to_lowercase();
+
+    let filtered_transactions: Vec<Transaction> = transaction_db
+        .data
+        .values()
+        .filter(|transaction| {
+            // Buscar en descripción
+            transaction.get_details().to_lowercase().contains(&query_lower) ||
+            // Buscar en categoría
+            transaction.get_category().to_lowercase().contains(&query_lower)
+        })
+        .cloned()
+        .collect();
+
+    Ok(filtered_transactions)
+}

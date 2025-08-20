@@ -1,3 +1,4 @@
+import { renderSpecificInformation } from "@/helpers/render-specific-information";
 import { Transaction } from "@/models/transaction";
 import { motion } from "motion/react";
 
@@ -20,9 +21,9 @@ export default function TransactionCard({ transaction, animationDelay }: { trans
                 {transaction.category}
               </span>
             </div>
-            <div className="grid grid-cols-2">
-              {/* add custom dates and currency configuration to the app. */}
-              <p className="flex items-center text-sm text-neutral-700">{new Date(transaction.date).toLocaleString()}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {renderSpecificInformation(transaction)}
+              <p className="flex items-center text-sm text-neutral-700">{new Date(transaction.date).toLocaleDateString()}</p>
             </div>
           </div>
         </div>

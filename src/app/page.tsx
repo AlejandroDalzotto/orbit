@@ -1,12 +1,18 @@
 "use client";
 
 import ButtonAddTransaction from '@/components/buttons/ButtonAddTransaction';
+import Searchbar from '@/components/Searchbar';
 import TransactionList from '@/components/TransactionList';
 import TransactionsFinancialSummary from '@/components/TransactionsFinancialSummary';
-import { Search } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useState } from 'react';
 
 export default function Home() {
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+  }
 
   return (
     <motion.div
@@ -35,23 +41,13 @@ export default function Home() {
         className="flex flex-col sm:flex-row gap-4 mb-8"
       >
         <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-600 h-4 w-4" />
-            <input
-              placeholder="search transactions..."
-              // value={searchTerm}
-              // onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-1 rounded-md border outline-none focus:ring-neutral-800 ring-2 ring-transparent transition-all bg-black border-neutral-800 text-white font-mono placeholder:text-neutral-600"
-            />
-          </div>
+          <Searchbar onSearch={handleSearch} />
         </div>
         {/* filters here */}
-        <ButtonAddTransaction text='Add Transaction' />
-
+        <ButtonAddTransaction text="Add Transaction" />
       </motion.div>
 
-      <TransactionList />
-
+      <TransactionList searchQuery={searchQuery} />
     </motion.div>
-  );
+  )
 }

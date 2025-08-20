@@ -156,6 +156,24 @@ impl Transaction {
         result
     }
 
+    pub fn get_details(&self) -> String {
+        match self {
+            Transaction::Basic { details, .. }
+            | Transaction::Supermarket { details, .. }
+            | Transaction::Freelance { details, .. }
+            | Transaction::Salary { details, .. } => details.clone(),
+        }
+    }
+
+    pub fn get_category(&self) -> String {
+        match self {
+            Transaction::Basic { .. } => String::from("basic"),
+            Transaction::Supermarket { .. } => String::from("supermarket"),
+            Transaction::Freelance { .. } => String::from("freelance"),
+            Transaction::Salary { .. }=> String::from("salary"),
+        }
+    }
+
     pub fn get_amount(&self) -> f64 {
         match self {
             Transaction::Basic { amount, .. }
