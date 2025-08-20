@@ -6,6 +6,7 @@ import { useModal } from "@/context/modal-provider";
 import { generateTransactionFromFormdata } from "@/helpers/generate-transaction-from-formdata";
 import { renderSpecificFields } from "@/helpers/render-specific-fields";
 import { useTransactions } from "@/hooks/useTransactions";
+import { useTransactionsFinancialSummary } from "@/hooks/useTransactionsFinancialSummary";
 import { TransactionCategory, TransactionType } from "@/models/transaction";
 import { TransactionService } from "@/services/transaction";
 import { ChevronDown } from "lucide-react";
@@ -25,7 +26,8 @@ export default function ModalAddTransaction() {
   const [type, setType] = useState<TransactionType>(TransactionType.Income);
   const [category, setCategory] = useState<TransactionCategory>(TransactionCategory.Basic);
   const { close } = useModal();
-  const { mutate } = useTransactions({ offset: 0, limit: 50 })
+  const { mutate: mutateTransactions } = useTransactions({ offset: 0, limit: 50 })
+  const { mutate: mutateFinancialData } = useTransactionsFinancialSummary()
 
   const fieldPrefix = "transaction-"
 
@@ -53,7 +55,8 @@ export default function ModalAddTransaction() {
         return;
       }
 
-      mutate();
+      mutateTransactions();
+      mutateFinancialData();
       toast.success(`${result.type} saved successfully.`);
       close();
     } catch (e) {

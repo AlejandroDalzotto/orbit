@@ -2,60 +2,11 @@
 
 import ButtonAddTransaction from '@/components/buttons/ButtonAddTransaction';
 import TransactionList from '@/components/TransactionList';
-import { FinancialSummany, Transaction } from '@/models/transaction';
-import { TransactionService } from '@/services/transaction';
-import { ArrowUpRight, Search, TrendingDown, TrendingUp } from 'lucide-react';
+import TransactionsFinancialSummary from '@/components/TransactionsFinancialSummary';
+import { Search } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
 
 export default function Home() {
-
-  const [financialSummany, setFinancialSummany] = useState<FinancialSummany | null>(null);
-  const [transactions, setTransactions] = useState<Transaction[] | null>(null);
-
-  useEffect(() => {
-
-    const fetchData = async () => {
-      const service = new TransactionService();
-
-      try {
-        const [resultFinancialSummary, resultTransactions] = await Promise.all([
-          service.getFinancialSummary(),
-          service.getTransactions(),
-        ]);
-
-        if (resultFinancialSummary[0]) {
-          console.error('Error fetching financial summary:', resultFinancialSummary[0]);
-          return;
-        }
-
-        if (resultTransactions[0]) {
-          console.error('Error fetching transactions:', resultTransactions[0]);
-          return;
-        }
-
-        setFinancialSummany(resultFinancialSummary[1])
-        setTransactions(resultTransactions[1])
-
-
-      } catch (error) {
-        console.error('Error fetching transactions:', error);
-      }
-    }
-    fetchData();
-
-
-  }, []);
-
-  if (!financialSummany || !transactions) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-neutral-400 font-mono">Loading...</p>
-      </div>
-    );
-  }
-
-  const { netBalance, totalExpenses, totalIncome } = financialSummany;
 
   return (
     <motion.div
@@ -75,48 +26,7 @@ export default function Home() {
         <p className="text-neutral-400 font-mono text-sm">track income and expenses</p>
       </motion.div>
 
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="grid gap-6 md:grid-cols-3 mb-12"
-      >
-        <div className="border-neutral-800 flex flex-col gap-6 rounded-xl border py-6 shadow-sm bg-black">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-neutral-400 font-mono text-sm">income</span>
-              <TrendingUp className="h-4 w-4 text-neutral-600" />
-            </div>
-            <div className="text-2xl font-light text-white font-mono">
-              +${totalIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </div>
-          </div>
-        </div>
-
-        <div className="border-neutral-800 flex flex-col gap-6 rounded-xl border py-6 shadow-sm bg-black">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-neutral-400 font-mono text-sm">expenses</span>
-              <TrendingDown className="h-4 w-4 text-neutral-600" />
-            </div>
-            <div className="text-2xl font-light text-white font-mono">
-              -${totalExpenses.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </div>
-          </div>
-        </div>
-
-        <div className="border-neutral-800 flex flex-col gap-6 rounded-xl border py-6 shadow-sm bg-black">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-neutral-400 font-mono text-sm">balance</span>
-              <ArrowUpRight className={`h-4 w-4 ${netBalance >= 0 ? "text-neutral-600" : "text-neutral-600"}`} />
-            </div>
-            <div className={`text-2xl font-light font-mono ${netBalance >= 0 ? "text-white" : "text-white"}`}>
-              {netBalance >= 0 ? "+" : ""}${netBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </div>
-          </div>
-        </div>
-      </motion.div>
+      <TransactionsFinancialSummary />
 
       <motion.div
         initial={{ y: 20, opacity: 0 }}

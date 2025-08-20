@@ -3,11 +3,48 @@
 import ButtonAddTransaction from "@/components/buttons/ButtonAddTransaction";
 import TransactionCard from "@/components/TransactionCard";
 import { useTransactions } from "@/hooks/useTransactions";
+import { Transaction } from "@/models/transaction";
 import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 type SortOption = "latest" | "oldest" | "balance" | "income" | "expenses"
+
+function sortTransactions(
+  transactions: Transaction[] | null,
+  sortBy: "balance" | "latest" | "oldest" | "expenses" | "income"
+) {
+  if (!transactions) return null
+
+  const getTime = (date?: string | number) =>
+    new Date(date || 0).getTime()
+
+  let result = [...transactions]
+
+  switch (sortBy) {
+    case "balance":
+      result.sort((a, b) => b.amount - a.amount)
+      break
+
+    case "latest":
+      result.sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt))
+      break
+
+    case "oldest":
+      result.sort((a, b) => getTime(a.createdAt) - getTime(b.createdAt))
+      break
+
+    case "income":
+      result = result.filter(t => t.type === "income")
+      break
+
+    case "expenses":
+      result = result.filter(t => t.type === "expense")
+      break
+  }
+
+  return result
+}
 
 export default function TransactionList() {
 
@@ -25,6 +62,8 @@ export default function TransactionList() {
     { value: "income" as const, label: "Income only" },
     { value: "expenses" as const, label: "Expenses only" },
   ]
+
+  const sortedTransactions = sortTransactions(transactions, sortBy);
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -110,11 +149,13 @@ export default function TransactionList() {
           ) : null}
         </div>
 
-        {transactions !== null
-          ? transactions.map((transaction, index) => {
-            return <TransactionCard key={transaction.id} transaction={transaction} animationDelay={index * 0.1} />
-          })
-          : null}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-96">
+          {sortedTransactions !== null
+            ? sortedTransactions.map((transaction, index) => {
+              return <TransactionCard key={transaction.id} transaction={transaction} animationDelay={index * 0.1} />
+            })
+            : null}
+        </div>
       </div>
 
       {transactions === null || transactions.length === 0 ? (
