@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use tauri::{Manager};
 use uuid::Uuid;
 
-use crate::{models::{enums::{SchemaVersion, Transaction}, transaction::TransactionDB, wallet::{Account, NewAccount, WalletDB}}, utils::atomic_write};
+use crate::{models::{enums::SchemaVersion, transaction::{Transaction, TransactionDB}, wallet::{Account, NewAccount, WalletDB}}, utils::atomic_write};
 
 #[tauri::command]
 pub async fn get_total_balance(app: tauri::AppHandle) -> Result<f64, String> {
