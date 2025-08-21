@@ -68,6 +68,7 @@ pub async fn get_financial_summary(app: tauri::AppHandle) -> Result<FinancialSum
         net_balance: transaction_db.net_balance,
         total_income: transaction_db.total_income,
         total_expenses: transaction_db.total_expenses,
+        transactions_count: transaction_db.data.len(),
     };
 
     Ok(summary)

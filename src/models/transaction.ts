@@ -91,9 +91,10 @@ export type Transaction =
   | FreelanceTransaction;
 
 export type FinancialSummany = {
-  netBalance: number;
-  totalIncome: number;
-  totalExpenses: number;
+  netBalance: number
+  totalIncome: number
+  totalExpenses: number
+  transactionsCount: number
 }
 
 export type CreateTransaction =

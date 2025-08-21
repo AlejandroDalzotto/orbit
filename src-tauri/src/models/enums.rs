@@ -1,7 +1,4 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-
-use crate::models::transaction::Item;
 
 /// La versión del esquema
 #[derive(Serialize, Deserialize, Debug)]

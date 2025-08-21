@@ -101,6 +101,7 @@ pub struct FinancialSummary {
     pub net_balance: f64,
     pub total_income: f64,
     pub total_expenses: f64,
+    pub transactions_count: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

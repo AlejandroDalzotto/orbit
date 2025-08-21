@@ -51,6 +51,9 @@ export default function TransactionsFinancialSummary() {
           <div className={`text-2xl font-light font-mono ${financialSummary.netBalance >= 0 ? "text-white" : "text-white"}`}>
             {financialSummary.netBalance >= 0 ? "+" : ""}${financialSummary.netBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </div>
+          <div className="text-xs text-neutral-500 font-mono">
+            <p>{financialSummary.transactionsCount}</p>
+          </div>
         </div>
       </div>
     </motion.div>
