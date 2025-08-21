@@ -114,7 +114,14 @@ export default function TransactionList({ searchQuery = "" }: TransactionListPro
           <div className="flex items-center space-x-3">
             <h2 className="font-light tracking-wider text-neutral-200">Transactions</h2>
             {hasQuery && (
-              <span className="text-xs text-neutral-500 font-mono">{currentTransactions?.length} results</span>
+              <motion.span
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0 }}
+                className="text-xs text-neutral-500 font-mono"
+              >
+                {currentTransactions?.length} results
+              </motion.span>
             )}
           </div>
 
@@ -152,11 +159,10 @@ export default function TransactionList({ searchQuery = "" }: TransactionListPro
                               setSortBy(option.value)
                               setIsMenuOpen(false)
                             }}
-                            className={`w-full text-left px-3 py-2 text-sm font-mono font-light transition-colors first:rounded-t-md last:rounded-b-md ${
-                              sortBy === option.value
-                                ? "bg-neutral-900 text-white"
-                                : "text-neutral-400 hover:text-white hover:bg-neutral-900"
-                            }`}
+                            className={`w-full text-left px-3 py-2 text-sm font-mono font-light transition-colors first:rounded-t-md last:rounded-b-md ${sortBy === option.value
+                              ? "bg-neutral-900 text-white"
+                              : "text-neutral-400 hover:text-white hover:bg-neutral-900"
+                              }`}
                           >
                             {option.label}
                           </button>
@@ -173,8 +179,8 @@ export default function TransactionList({ searchQuery = "" }: TransactionListPro
         <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-96">
           {sortedTransactions !== null
             ? sortedTransactions.map((transaction, index) => (
-                <TransactionCard key={transaction.id} transaction={transaction} animationDelay={index * 0.1} />
-              ))
+              <TransactionCard key={transaction.id} transaction={transaction} animationDelay={index * 0.1} />
+            ))
             : null}
         </div>
       </div>
