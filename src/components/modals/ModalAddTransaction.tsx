@@ -44,7 +44,6 @@ export default function ModalAddTransaction() {
     const formData = new FormData(e.target as HTMLFormElement);
 
     const newTransaction = generateTransactionFromFormdata(formData)
-    console.log(newTransaction)
     try {
       const service = new TransactionService();
       const [error, result] = await service.addTransaction(newTransaction);
@@ -66,6 +65,10 @@ export default function ModalAddTransaction() {
       setIsLoading(false);
     }
   }
+
+  const today = new Date();
+  today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+  const todayString = today.toISOString().split('T')[0];
 
   return (
     <div className="p-6 max-h-[calc(100vh-100px)] text-sm rounded shadow-lg bg-black border border-neutral-700 w-xl overflow-y-auto">
@@ -189,9 +192,10 @@ export default function ModalAddTransaction() {
             className="block text-neutral-300 font-mono mb-2"
             htmlFor={`${fieldPrefix}date`}
           >
-            date
+            date<span className="text-neutral-500 font-mono text-xs"> • today&apos;s date set by default</span>
           </label>
           <input
+            defaultValue={todayString}
             className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
             type="date"
             name="date"

@@ -25,6 +25,7 @@ const navigationItems = [
   },
 ]
 
+// todo: add key event to detect when user press tab to show the sidebar
 export function AutoHideSidebar() {
   const [isVisible, setIsVisible] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
