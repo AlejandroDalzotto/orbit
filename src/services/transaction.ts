@@ -1,5 +1,5 @@
 import type { Response } from "@/lib/types";
-import { CreateTransaction, Transaction } from "@/models/transaction";
+import { CreateTransaction, FinancialSummany, Transaction } from "@/models/transaction";
 import { invoke } from "@tauri-apps/api/core";
 
 export class TransactionService {
@@ -12,17 +12,9 @@ export class TransactionService {
     }
   }
 
-  async getFinancialSummary(): Response<{
-    netBalance: number,
-    totalIncome: number,
-    totalExpenses: number
-  }> {
+  async getFinancialSummary(): Response<FinancialSummany> {
     try {
-      const data = await invoke("get_financial_summary") as {
-        netBalance: number
-        totalIncome: number
-        totalExpenses: number
-      };
+      const data = await invoke("get_financial_summary") as FinancialSummany;
       return [null, data];
     } catch (error) {
       return [{ msg: error as string }, null];

@@ -8,7 +8,7 @@ export class WalletService {
       const balance = await invoke("get_total_balance");
       return [null, balance as number];
     } catch (e) {
-      return [e as Error, null];
+      return [{ msg: (e as Error).message }, null];
     }
   }
 
@@ -17,7 +17,7 @@ export class WalletService {
       const accounts: Account[] = await invoke("get_accounts");
       return [null, accounts];
     } catch (e) {
-      return [e as Error, null];
+      return [{ msg: (e as Error).message }, null];
     }
   }
 
@@ -33,7 +33,7 @@ export class WalletService {
       const result = await invoke<Account>("add_account", { entry: newEntry });
       return [null, result];
     } catch (e) {
-      return [e as Error, null];
+      return [{ msg: (e as Error).message }, null];
     }
   }
 
@@ -42,7 +42,7 @@ export class WalletService {
       const result = await invoke<Account>("edit_account", { id, entry: newValues });
       return [null, result];
     } catch (e) {
-      return [e as Error, null];
+      return [{ msg: (e as Error).message }, null];
     }
   }
 
@@ -51,7 +51,7 @@ export class WalletService {
       const result = await invoke<Account>("delete_account", { id });
       return [null, result];
     } catch (e) {
-      return [e as Error, null];
+      return [{ msg: (e as Error).message }, null];
     }
   }
 }

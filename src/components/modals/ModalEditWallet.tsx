@@ -29,7 +29,7 @@ export default function ModalEditWallet({ account }: { account: Account }) {
       const service = new WalletService();
       const [error, data] = await service.editAccount(account.id, newAccount);
       if (error) {
-        toast.error(`Failed to create wallet: ${error.message}`);
+        toast.error(`Failed to create wallet: ${error.msg}`);
         setIsLoading(false);
         return;
       }

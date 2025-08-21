@@ -102,7 +102,7 @@ export default function DropdownMenu({
                 if (confirm(`Are you sure you want to delete the account "${account.name}"? This action cannot be undone.`)) {
                   service.deleteAccount(account.id).then(([error, result]) => {
                     if (error) {
-                      toast.error(`Error deleting account: ${error.message}`);
+                      toast.error(`Error deleting account: ${error.msg}`);
                     } else {
                       onAccountDeleted(result);
                       toast.success(`Account ${result.name} deleted successfully.\n${result.transactionsCount} transactions will be marked as paid with an unknown method.`);

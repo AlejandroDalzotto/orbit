@@ -30,7 +30,7 @@ export default function ModalAddWallet() {
       const service = new WalletService();
       const [error, data] = await service.addAccount(newAccount);
       if (error) {
-        toast.error(`Failed to create wallet: ${error.message}`);
+        toast.error(`Failed to create wallet: ${error.msg}`);
         setIsLoading(false);
         return;
       }
