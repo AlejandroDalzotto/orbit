@@ -1,53 +1,45 @@
 "use client";
 
-import ButtonAddTransaction from '@/components/buttons/ButtonAddTransaction';
-import Searchbar from '@/components/Searchbar';
-import TransactionList from '@/components/TransactionList';
-import TransactionsFinancialSummary from '@/components/TransactionsFinancialSummary';
-import { motion } from 'motion/react';
-import { useState } from 'react';
+import AccountList from "@/components/AccountList";
+import ButtonAddWallet from "@/components/buttons/ButtonAddWallet";
+import { useWalletBalance } from "@/hooks/useWalletBalance";
+import { motion } from "motion/react";
 
-export default function Home() {
-  const [searchQuery, setSearchQuery] = useState("")
+export default function WalletPage() {
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query)
+  const { isLoading, error, totalBalance } = useWalletBalance()
+
+  if (isLoading || totalBalance === null) {
+    return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
+  if(error) return <div className="flex items-center justify-center h-full">Something went wrong...</div>
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-1 flex-col max-w-6xl mx-auto"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="max-w-6xl mx-auto"
     >
-      <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="mb-12"
-      >
-        <h1 className="text-4xl font-light text-white mb-2 font-mono">transactions</h1>
-        <div className="w-16 h-px bg-neutral-800 mb-4"></div>
-        <p className="text-neutral-400 font-mono text-sm">track income and expenses</p>
-      </motion.div>
+      <div className="mb-16">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="pb-8 border-b border-neutral-800"
+        >
+          <h1 className="mb-2 text-2xl font-light tracking-wider text-white">YOUR WALLET</h1>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-light text-neutral-500">
+              Total Balance: ${totalBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            </p>
+            <ButtonAddWallet text="Add account" />
+          </div>
+        </motion.div>
+      </div>
 
-      <TransactionsFinancialSummary />
+      <AccountList />
 
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="flex flex-col sm:flex-row gap-4 mb-8"
-      >
-        <div className="flex-1">
-          <Searchbar onSearch={handleSearch} />
-        </div>
-        {/* filters here */}
-        <ButtonAddTransaction text="Add Transaction" />
-      </motion.div>
-
-      <TransactionList searchQuery={searchQuery} />
     </motion.div>
   )
 }
