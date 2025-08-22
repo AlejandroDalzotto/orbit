@@ -35,7 +35,7 @@ const ItemsForm = ({ className = '' }: ItemsFormProps) => {
   return (
     <div className={`space-y-3 ${className}`}>
       <div className="flex items-center justify-between">
-        <label className="text-neutral-300 font-mono text-sm">Items</label>
+        <label className="text-neutral-300 font-mono text-sm">items</label>
         <button
           type="button"
           onClick={addItem}

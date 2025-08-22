@@ -15,6 +15,7 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
               job
             </label>
             <input
+              required
               placeholder="e.g. Software Engineer"
               className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
               type="text"
@@ -42,21 +43,6 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
           <div className="flex-1">
             <label
               className="block text-neutral-300 font-mono mb-2"
-              htmlFor={`${fieldPrefix}paymentDate`}
-            >
-              payment date
-            </label>
-            <input
-              className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
-              type="date"
-              name="paymentDate"
-              id={`${fieldPrefix}paymentDate`}
-            />
-          </div>
-
-          <div className="flex-1">
-            <label
-              className="block text-neutral-300 font-mono mb-2"
               htmlFor={`${fieldPrefix}extraDetails`}
             >
               Extra commentaries
@@ -74,12 +60,57 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
     case TransactionCategory.Freelance:
       return (
         <>
+          <div className="flex-1">
+            <label
+              className="block text-neutral-300 font-mono mb-2"
+              htmlFor={`${fieldPrefix}client`}
+            >
+              client
+            </label>
+            <input
+              placeholder="e.g. Local Restaurant"
+              className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
+              type="text"
+              name="client"
+              id={`${fieldPrefix}client`}
+            />
+          </div>
 
+          <div className="flex-1">
+            <label
+              className="block text-neutral-300 font-mono mb-2"
+              htmlFor={`${fieldPrefix}project`}
+            >
+              project
+            </label>
+            <input
+              placeholder="e.g. Website Redesign"
+              className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
+              type="text"
+              name="project"
+              id={`${fieldPrefix}project`}
+            />
+          </div>
         </>
       );
     case TransactionCategory.Supermarket:
       return (
         <>
+          <div className="flex-1">
+            <label
+              className="block text-neutral-300 font-mono mb-2"
+              htmlFor={`${fieldPrefix}store`}
+            >
+              store
+            </label>
+            <input
+              placeholder="e.g. Website Redesign"
+              className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
+              type="text"
+              name="storeName"
+              id={`${fieldPrefix}store`}
+            />
+          </div>
           <ItemsForm />
         </>
       );
