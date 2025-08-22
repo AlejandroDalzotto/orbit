@@ -9,19 +9,19 @@ import { useEffect, useRef, useState } from "react"
 // Navigation items
 const navigationItems = [
   {
-    title: "Transactions",
+    title: "Wallet",
     url: "/",
-    icon: TrendingUp,
+    icon: <CreditCard className="w-5 h-5" />,
   },
   {
-    title: "Wallets",
-    url: "/wallet",
-    icon: CreditCard,
+    title: "Transactions",
+    url: "/transactions",
+    icon: <TrendingUp className="w-5 h-5" />,
   },
   {
     title: "Analytics",
     url: "/analytics",
-    icon: BarChart3,
+    icon: <BarChart3 className="w-5 h-5" />,
   },
 ]
 
@@ -125,6 +125,7 @@ export function AutoHideSidebar() {
                           }`}
                       >
                         <div className="w-1 h-1 bg-current rounded-full" />
+                        {item.icon}
                         <span className="tracking-wide">{item.title}</span>
                       </Link>
                     </motion.div>
