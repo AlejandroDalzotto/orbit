@@ -32,8 +32,6 @@ export interface Item {
 export interface BasicTransaction {
   id: string
   amount: number
-  /** The currency used for this transaction */
-  currency: Currency
   /** Transaction date as Unix timestamp */
   date: number
   /** When the transaction record was created as Unix timestamp */
@@ -97,16 +95,10 @@ export type FinancialSummany = {
   transactionsCount: number
 }
 
-export type CreateTransaction =
+export type RequestTransaction =
   | Omit<SalaryTransaction, 'id' | 'createdAt' | 'updatedAt'>
   | Omit<SupermarketTransaction, 'id' | 'createdAt' | 'updatedAt'>
   | Omit<FreelanceTransaction, 'id' | 'createdAt' | 'updatedAt'>;
-
-
-export type EditTransaction =
-  | Omit<SalaryTransaction, 'id' | 'createdAt' | 'updatedAt' | 'currency'>
-  | Omit<SupermarketTransaction, 'id' | 'createdAt' | 'updatedAt' | 'currency'>
-  | Omit<FreelanceTransaction, 'id' | 'createdAt' | 'updatedAt' | 'currency'>;
 
 /**
  * 1. gastos de casa

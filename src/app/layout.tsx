@@ -3,7 +3,6 @@ import { Exo_2 } from "next/font/google";
 import "./globals.css";
 import { ModalProvider } from "@/context/modal-provider";
 import { ClientLayout } from "@/components/layouts/ClientLayout";
-import { WalletProvider } from "@/context/wallet-provider";
 
 const exo2 = Exo_2({
   variable: "--font-exo-2",
@@ -21,14 +20,12 @@ export default function RootLayout({
       <body
         className={`${exo2.variable} antialiased font-exo bg-black text-white`}
       >
-        <WalletProvider>
-          <ModalProvider>
-            <Grainy />
-            <ClientLayout>
-              {children}
-            </ClientLayout>
-          </ModalProvider>
-        </WalletProvider>
+        <ModalProvider>
+          <Grainy />
+          <ClientLayout>
+            {children}
+          </ClientLayout>
+        </ModalProvider>
       </body>
     </html>
   );

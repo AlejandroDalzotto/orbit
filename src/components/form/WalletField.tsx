@@ -1,4 +1,4 @@
-import { useWallet } from "@/context/wallet-provider"
+import { useWalletAccounts } from "@/hooks/useWalletAccounts"
 import { ChevronDown } from "lucide-react"
 
 export default function WalletField({
@@ -7,7 +7,7 @@ export default function WalletField({
   prefix: string
 }) {
 
-  const { accounts } = useWallet()
+  const { accounts } = useWalletAccounts()
 
   if (!accounts) return null
 

@@ -2,16 +2,17 @@
 
 import AccountList from "@/components/AccountList";
 import ButtonAddWallet from "@/components/buttons/ButtonAddWallet";
-import { useWallet } from "@/context/wallet-provider";
+import { useWalletBalance } from "@/hooks/useWalletBalance";
 import { motion } from "motion/react";
 
 export default function WalletPage() {
 
-  const { isLoading, totalBalance } = useWallet()
+  const { isLoading, error, totalBalance } = useWalletBalance()
 
   if (isLoading || totalBalance === null) {
     return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
+  if(error) return <div className="flex items-center justify-center h-full">Something went wrong...</div>
 
   return (
     <motion.div

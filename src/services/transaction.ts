@@ -1,5 +1,5 @@
 import type { Response } from "@/lib/types";
-import { CreateTransaction, FinancialSummany, Transaction } from "@/models/transaction";
+import { RequestTransaction, FinancialSummany, Transaction } from "@/models/transaction";
 import { invoke } from "@tauri-apps/api/core";
 
 export class TransactionService {
@@ -32,7 +32,7 @@ export class TransactionService {
     return transaction;
   }
 
-  async addTransaction(newEntry: CreateTransaction): Response<Transaction> {
+  async addTransaction(newEntry: RequestTransaction): Response<Transaction> {
 
     // Validate the new entry
     if (newEntry.amount <= 0) {

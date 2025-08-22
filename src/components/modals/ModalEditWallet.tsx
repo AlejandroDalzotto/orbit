@@ -1,7 +1,7 @@
 "use client";
 
 import { useModal } from "@/context/modal-provider";
-import { useWallet } from "@/context/wallet-provider";
+import { useWalletAccounts } from "@/hooks/useWalletAccounts";
 import type { Account, AccountType, EditAccount } from "@/models/wallet";
 import { WalletService } from "@/services/wallet";
 import { useState } from "react";
@@ -11,7 +11,7 @@ export default function ModalEditWallet({ account }: { account: Account }) {
 
   const [isLoading, setIsLoading] = useState(false);
   const { close } = useModal();
-  const { onAccountEdited } = useWallet();
+  const { mutate } = useWalletAccounts()
 
   const handleSubmit = async (e: React.FormEvent) => {
     setIsLoading(true);
@@ -34,7 +34,7 @@ export default function ModalEditWallet({ account }: { account: Account }) {
         return;
       }
 
-      onAccountEdited(data)
+      mutate(data)
       toast.success(`Account ${data.name} saved successfully.`);
     } catch (e) {
       console.error({ e })
