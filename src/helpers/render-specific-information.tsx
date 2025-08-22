@@ -1,4 +1,5 @@
 import { Transaction, TransactionCategory } from "@/models/transaction";
+import { Building2, ShoppingCart, Shovel } from "lucide-react";
 
 export const renderSpecificInformation = (transaction: Transaction) => {
 
@@ -6,9 +7,15 @@ export const renderSpecificInformation = (transaction: Transaction) => {
     case TransactionCategory.Salary:
       return (
         <>
-          <p className="flex items-center text-sm text-neutral-700">{transaction.job}</p>
+          <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+            <Shovel className="w-3 h-3" />
+            {transaction.job}
+          </p>
           {transaction.employer ? (
-            <p className="flex items-center text-sm text-neutral-700">{transaction.employer}</p>
+            <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+              <Building2 className="w-3 h-3" />
+              {transaction.employer}
+            </p>
           ) : null}
         </>
       );
@@ -17,18 +24,30 @@ export const renderSpecificInformation = (transaction: Transaction) => {
       return (
         <>
           {transaction.client ? (
-            <p className="flex items-center text-sm text-neutral-700">{transaction.client}</p>
+            <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+              <span className="w-1 h-1 rounded-full bg-neutral-600" />
+              {transaction.client}
+            </p>
           ) : null}
           {transaction.project ? (
-            <p className="flex items-center text-sm text-neutral-700">{transaction.project}</p>
+            <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+              <Building2 className="w-3 h-3" />
+              {transaction.project}
+            </p>
           ) : null}
         </>
       );
     case TransactionCategory.Supermarket:
       return (
         <>
-          <p className="flex items-center text-sm text-neutral-700">{transaction.storeName}</p>
-          <p className="flex items-center text-sm text-neutral-700">{transaction.items.length} {transaction.items.length === 1 ? "item" : "items"}</p>
+          <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+            <ShoppingCart className="w-3 h-3" />
+            {transaction.storeName}
+          </p>
+          <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+            <span className="w-1 h-1 rounded-full bg-neutral-600" />
+            {transaction.items.length} {transaction.items.length === 1 ? "item" : "items"}
+          </p>
         </>
       );
     default:
