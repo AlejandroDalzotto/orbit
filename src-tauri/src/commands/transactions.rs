@@ -4,6 +4,7 @@ use crate::{
     models::{
         enums::SchemaVersion,
         transaction::{FinancialSummary, Transaction, TransactionDB, TransactionUpdateRequest},
+        wallet::WalletDB,
     },
     utils::atomic_write,
 };
@@ -125,7 +126,8 @@ pub async fn add_transaction(
         let content = std::fs::read_to_string(&file_path)
             .map_err(|e| format!("Failed to read transactions file: {}", e))?;
 
-        serde_json::from_str(&content).map_err(|e| format!("Failed to parse transactions file: {}", e))?
+        serde_json::from_str(&content)
+            .map_err(|e| format!("Failed to parse transactions file: {}", e))?
     } else {
         TransactionDB {
             data: HashMap::new(),
@@ -149,6 +151,47 @@ pub async fn add_transaction(
     }
 
     transaction_db.net_balance = transaction_db.total_income - transaction_db.total_expenses;
+
+    if new_transaction.affects_balance {
+        let file_path = file_path
+            .parent()
+            .ok_or("Could not get parent directory")?
+            .join("wallet.json");
+
+        if file_path.exists() {
+            let content = std::fs::read_to_string(&file_path)
+                .map_err(|e| format!("Failed to read wallet file: {}", e))?;
+
+            let mut wallet_db: WalletDB = serde_json::from_str(&content)
+                .map_err(|e| format!("Failed to parse wallet file: {}", e))?;
+
+            if let Some(acc) = wallet_db.accounts.get_mut(&new_transaction.account_id) {
+                if !new_transaction.is_income() && new_transaction.amount > acc.balance {
+                    return Err(String::from(format!(
+                        "The transaction's amount exceeds the current balance of the wallet {}.",
+                        acc.name
+                    )));
+                }
+
+                if new_transaction.is_income() {
+                    acc.balance += new_transaction.amount;
+                    wallet_db.total_balance += new_transaction.amount;
+                } else {
+                    acc.balance -= new_transaction.amount;
+                    wallet_db.total_balance -= new_transaction.amount;
+                }
+
+                acc.transactions_count += 1;
+                acc.transactions_id.push(new_transaction.id.clone());
+
+                let updated_content = serde_json::to_string_pretty(&wallet_db)
+                    .map_err(|e| format!("Failed to serialize wallet: {}", e))?;
+
+                atomic_write(&file_path, &updated_content)
+                    .map_err(|e| format!("Failed to write wallet file: {}", e))?;
+            }
+        }
+    }
 
     let updated_content = serde_json::to_string_pretty(&transaction_db)
         .map_err(|e| format!("Failed to serialize transactions: {}", e))?;
