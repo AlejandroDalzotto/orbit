@@ -7,6 +7,8 @@ import { generateTransactionFromFormdata } from "@/helpers/generate-transaction-
 import { renderSpecificFields } from "@/helpers/render-specific-fields";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useTransactionsFinancialSummary } from "@/hooks/useTransactionsFinancialSummary";
+import { useWalletAccounts } from "@/hooks/useWalletAccounts";
+import { useWalletBalance } from "@/hooks/useWalletBalance";
 import { TransactionCategory, TransactionType } from "@/models/transaction";
 import { TransactionService } from "@/services/transaction";
 import { ChevronDown } from "lucide-react";
@@ -28,6 +30,8 @@ export default function ModalAddTransaction() {
   const { close } = useModal();
   const { mutate: mutateTransactions } = useTransactions({ offset: 0, limit: 50 })
   const { mutate: mutateFinancialData } = useTransactionsFinancialSummary()
+  const { mutate: mutateWalletAccounts } = useWalletAccounts()
+  const { mutate: mutateWalletBalance } = useWalletBalance()
 
   const fieldPrefix = "transaction-"
 
@@ -56,6 +60,11 @@ export default function ModalAddTransaction() {
 
       mutateTransactions();
       mutateFinancialData();
+
+      if (result.affectsBalance) {
+        mutateWalletAccounts();
+        mutateWalletBalance();
+      }
       toast.success(`${result.type} saved successfully.`);
       close();
     } catch (e) {
@@ -80,6 +89,7 @@ export default function ModalAddTransaction() {
           <label className="block text-neutral-300 font-mono mb-2" htmlFor={`${fieldPrefix}type`}>type</label>
           <div className="relative">
             <select
+              required
               id={`${fieldPrefix}type`}
               onChange={(e) => handleTypeChange(e.target.value as TransactionType)}
               defaultValue="income"
@@ -115,6 +125,7 @@ export default function ModalAddTransaction() {
               amount
             </label>
             <input
+              required
               placeholder="0.00"
               className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
               type="number"
@@ -123,39 +134,13 @@ export default function ModalAddTransaction() {
               id={`${fieldPrefix}amount`}
             />
           </div>
-          <div>
-            <label className="block text-neutral-300 font-mono mb-2" htmlFor={`${fieldPrefix}currency`}>currency</label>
-            {/* TODO: Currency should be automatically handled using the same currency as the wallet used in the transaction. */}
-            <div className="relative">
-              <select
-                id={`${fieldPrefix}currency`}
-                defaultValue="ARS"
-                name="currency"
-                className="min-w-28 appearance-none bg-black border border-neutral-800 hover:border-neutral-700 focus:border-neutral-700 text-white font-mono font-light px-3 py-2 pr-10 rounded-md cursor-pointer focus:outline-none focus:ring-1 focus:ring-neutral-700 transition-colors"
-              >
-                {['ARS', 'USD'].map((value) => (
-                  <option
-                    key={value}
-                    value={value}
-                    className="bg-black text-white"
-                  >
-                    {value}
-                  </option>
-                ))}
-              </select>
-
-              {/* Custom chevron icon */}
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <ChevronDown className="h-4 w-4 text-neutral-400" />
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="flex-1">
           <label className="block text-neutral-300 font-mono mb-2" htmlFor={`${fieldPrefix}category`}>category</label>
           <div className="relative">
             <select
+              required
               id={`${fieldPrefix}category`}
               defaultValue={TransactionCategory.Basic}
               onChange={(e) => setCategory(e.target.value as TransactionCategory)}
@@ -195,6 +180,7 @@ export default function ModalAddTransaction() {
             date<span className="text-neutral-500 font-mono text-xs"> • today&apos;s date set by default</span>
           </label>
           <input
+            required
             defaultValue={todayString}
             className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
             type="date"
@@ -211,6 +197,7 @@ export default function ModalAddTransaction() {
             details
           </label>
           <textarea
+            required
             spellCheck='false'
             autoComplete="off"
             placeholder="description..."

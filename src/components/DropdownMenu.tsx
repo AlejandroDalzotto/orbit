@@ -3,7 +3,8 @@
 import DropdownMenuButton from "@/components/buttons/DropdownMenuButton";
 import ModalEditWallet from "@/components/modals/ModalEditWallet";
 import { useModal } from "@/context/modal-provider";
-import { useWallet } from "@/context/wallet-provider";
+import { useWalletAccounts } from "@/hooks/useWalletAccounts";
+import { useWalletBalance } from "@/hooks/useWalletBalance";
 import { Account } from "@/models/wallet";
 import { WalletService } from "@/services/wallet";
 import { Edit, Eye, MoreHorizontal, Trash2 } from "lucide-react";
@@ -22,7 +23,8 @@ export default function DropdownMenu({
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const service = new WalletService();
-  const { onAccountDeleted } = useWallet();
+  const { mutate: mutateAccounts } = useWalletAccounts();
+  const { mutate: mutateBalance } = useWalletBalance();
   const { open } = useModal();
 
   useEffect(() => {
@@ -104,7 +106,8 @@ export default function DropdownMenu({
                     if (error) {
                       toast.error(`Error deleting account: ${error.msg}`);
                     } else {
-                      onAccountDeleted(result);
+                      mutateAccounts(result);
+                      mutateBalance();
                       toast.success(`Account ${result.name} deleted successfully.\n${result.transactionsCount} transactions will be marked as paid with an unknown method.`);
                     }
                   });

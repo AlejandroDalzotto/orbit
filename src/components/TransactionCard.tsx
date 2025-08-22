@@ -1,8 +1,17 @@
 import { renderSpecificInformation } from "@/helpers/render-specific-information";
+import { useWalletAccounts } from "@/hooks/useWalletAccounts";
 import { Transaction } from "@/models/transaction";
+import { Calendar, Wallet2 } from "lucide-react";
 import { motion } from "motion/react";
 
 export default function TransactionCard({ transaction, animationDelay }: { transaction: Transaction, animationDelay: number }) {
+
+  const { accounts } = useWalletAccounts()
+
+  if (!accounts) return null;
+
+  const accountName = accounts.find(acc => acc.id === transaction.accountId)?.name ?? "unknown account";
+
   return (
     <motion.div
       key={transaction.id}
@@ -17,20 +26,27 @@ export default function TransactionCard({ transaction, animationDelay }: { trans
           <div className="flex flex-col space-y-2">
             <div className="flex items-center space-x-2">
               <h3 className="font-light tracking-wide text-white">{transaction.details}</h3>
-              <span className="px-2 text-sm rounded border border-neutral-700 lowercase text-neutral-700">
+              <span className="px-2 text-sm rounded border border-neutral-700 lowercase text-neutral-500">
                 {transaction.category}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2">
+              <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+                <Calendar className="w-3 h-3" />
+                {new Date(transaction.date).toLocaleDateString()}
+              </p>
+              <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+                <Wallet2 className="w-3 h-3" />
+                {accountName}
+              </p>
               {renderSpecificInformation(transaction)}
-              <p className="flex items-center text-sm text-neutral-700">{new Date(transaction.date).toLocaleDateString()}</p>
             </div>
           </div>
         </div>
       </div>
 
       <div>
-        <p className="text-white text-lg"> {transaction.type === 'income' ? "+" : "-"}${transaction.amount.toLocaleString(transaction.currency === 'USD' ? 'en-US' : 'es-AR', { minimumFractionDigits: 2 })} • {transaction.currency}</p>
+        <p className="text-white text-lg"> {transaction.type === 'income' ? "+" : "-"}${transaction.amount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</p>
       </div>
     </motion.div>
   )
