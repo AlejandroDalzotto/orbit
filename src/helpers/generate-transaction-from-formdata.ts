@@ -1,4 +1,4 @@
-import { CreateTransaction, Item, TransactionCategory } from "@/models/transaction"
+import { RequestTransaction, Item, TransactionCategory } from "@/models/transaction"
 
 function dateStringToTimestamp(str: string) {
   const date = new Date(str)
@@ -7,8 +7,8 @@ function dateStringToTimestamp(str: string) {
   return timestamp
 }
 
-export const generateTransactionFromFormdata = (formData: FormData): CreateTransaction => {
-  const transaction = Object.fromEntries(formData) as unknown as CreateTransaction
+export const generateTransactionFromFormdata = (formData: FormData): RequestTransaction => {
+  const transaction = Object.fromEntries(formData) as unknown as RequestTransaction
 
   transaction.affectsBalance = formData.get('affectsBalance') === 'on';
   transaction.amount = Number(formData.get('amount'));
@@ -17,6 +17,9 @@ export const generateTransactionFromFormdata = (formData: FormData): CreateTrans
 
   switch (transaction.category) {
     case TransactionCategory.Supermarket: {
+
+      transaction.storeName = formData.get('storeName') as string;
+
       // Extraer items del FormData
       const items: Item[] = [];
       let index = 0;
