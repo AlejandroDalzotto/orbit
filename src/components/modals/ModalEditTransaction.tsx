@@ -1,7 +1,7 @@
 "use client";
 
 import { useModal } from "@/context/modal-provider";
-import { generateEditTransactionFromFormdata } from "@/helpers/generate-transaction-from-formdata";
+import { buildTransactionFromFormData } from "@/helpers/generate-transaction-from-formdata";
 import { renderSpecificFields } from "@/helpers/render-specific-fields";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useTransactionsFinancialSummary } from "@/hooks/useTransactionsFinancialSummary";
@@ -28,7 +28,7 @@ export default function ModalEditTransaction({ transaction }: { transaction: Tra
 
     const formData = new FormData(e.target as HTMLFormElement);
 
-    const newTransaction: RequestEditTransaction = generateEditTransactionFromFormdata(formData, transaction.category)
+    const newTransaction: RequestEditTransaction = buildTransactionFromFormData(formData, "edit", transaction.category)
     try {
       const service = new TransactionService();
       const [error, result] = await service.editTransaction(transaction.id, newTransaction);

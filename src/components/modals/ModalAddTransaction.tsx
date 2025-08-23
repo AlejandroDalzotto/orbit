@@ -3,7 +3,7 @@
 import CheckBox from "@/components/form/CheckBox";
 import WalletField from "@/components/form/WalletField";
 import { useModal } from "@/context/modal-provider";
-import { generateTransactionFromFormdata } from "@/helpers/generate-transaction-from-formdata";
+import { buildTransactionFromFormData } from "@/helpers/generate-transaction-from-formdata";
 import { renderSpecificFields } from "@/helpers/render-specific-fields";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useTransactionsFinancialSummary } from "@/hooks/useTransactionsFinancialSummary";
@@ -46,8 +46,9 @@ export default function ModalAddTransaction() {
     setIsLoading(true);
 
     const formData = new FormData(e.target as HTMLFormElement);
+    const category = formData.get('category') as TransactionCategory;
+    const newTransaction = buildTransactionFromFormData(formData, "create", category)
 
-    const newTransaction = generateTransactionFromFormdata(formData)
     try {
       const service = new TransactionService();
       const [error, result] = await service.addTransaction(newTransaction);
