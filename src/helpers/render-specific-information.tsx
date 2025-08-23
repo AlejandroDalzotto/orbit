@@ -40,7 +40,7 @@ export const renderSpecificInformation = (transaction: Transaction) => {
     case TransactionCategory.Supermarket:
       return (
         <>
-          <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+          <p className="flex truncate items-center gap-x-2 text-sm text-neutral-500">
             <ShoppingCart className="w-3 h-3" />
             {transaction.storeName}
           </p>
