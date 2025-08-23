@@ -27,18 +27,25 @@ pub struct Transaction {
     pub category: String, // "basic", "supermarket", "salary", "freelance", etc.
 
     // Optional fields for different transaction types
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub store_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub items: Option<Vec<Item>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub job: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub employer: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub extra_details: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub client: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub project: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct TransactionUpdateRequest {
+pub struct RequestCreateTransaction {
     pub amount: f64,
     pub date: u64,
     pub details: String,
@@ -57,8 +64,27 @@ pub struct TransactionUpdateRequest {
     pub project: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RequestEditTransaction {
+    pub amount: f64,
+    pub date: u64,
+    pub details: String,
+
+    // Optional fields
+    pub store_name: Option<String>,
+    pub items: Option<Vec<Item>>,
+
+    pub job: Option<String>,
+    pub employer: Option<String>,
+    pub extra_details: Option<String>,
+
+    pub client: Option<String>,
+    pub project: Option<String>,
+}
+
 impl Transaction {
-    pub fn new_from_request(request: TransactionUpdateRequest) -> Self {
+    pub fn new_from_request(request: RequestCreateTransaction) -> Self {
         let id = Uuid::new_v4().to_string();
         let now = chrono::Utc::now().timestamp_millis() as u64;
 
