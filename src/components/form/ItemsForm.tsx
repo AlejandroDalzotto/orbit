@@ -3,11 +3,12 @@ import { Plus, X } from 'lucide-react'
 import { Item } from '@/models/transaction'
 
 interface ItemsFormProps {
+  initialValues?: Item[]
   className?: string
 }
 
-const ItemsForm = ({ className = '' }: ItemsFormProps) => {
-  const [items, setItems] = useState<Item[]>([{ name: '', quantity: null, price: null }])
+const ItemsForm = ({ className = '', initialValues }: ItemsFormProps) => {
+  const [items, setItems] = useState<Item[]>(initialValues?.length ? initialValues : [{ name: '', quantity: null, price: null }])
 
   const addItem = () => {
     setItems([...items, { name: '', quantity: null, price: null }])
@@ -59,7 +60,7 @@ const ItemsForm = ({ className = '' }: ItemsFormProps) => {
               className="flex-1 bg-black border border-neutral-800 text-white font-mono text-sm px-2 py-1 rounded focus:outline-none focus:border-neutral-700 transition-colors"
               required={index === 0} // Al menos el primer item debe tener nombre
             />
-            
+
             {/* Quantity - Optional */}
             <input
               type="number"
@@ -71,7 +72,7 @@ const ItemsForm = ({ className = '' }: ItemsFormProps) => {
               onChange={(e) => updateItem(index, 'quantity', e.target.value)}
               className="w-16 bg-black border border-neutral-800 text-white font-mono text-sm px-2 py-1 rounded focus:outline-none focus:border-neutral-700 transition-colors"
             />
-            
+
             {/* Price - Optional */}
             <input
               type="number"
@@ -83,7 +84,7 @@ const ItemsForm = ({ className = '' }: ItemsFormProps) => {
               onChange={(e) => updateItem(index, 'price', e.target.value)}
               className="w-20 bg-black border border-neutral-800 text-white font-mono text-sm px-2 py-1 rounded focus:outline-none focus:border-neutral-700 transition-colors"
             />
-            
+
             {/* Remove button - Only show if more than 1 item */}
             {items.length > 1 && (
               <button
