@@ -75,7 +75,7 @@ export interface SupermarketTransaction extends BasicTransaction {
 /**
  * Freelance work payment transaction
  */
-interface FreelanceTransaction extends BasicTransaction {
+export interface FreelanceTransaction extends BasicTransaction {
   /** Name of the client or company */
   client: string | null
   /** Project name or description */
@@ -95,17 +95,20 @@ export type FinancialSummany = {
   transactionsCount: number
 }
 
-export type RequestTransaction =
+export type RequestCreateTransaction =
   | Omit<SalaryTransaction, 'id' | 'createdAt' | 'updatedAt'>
   | Omit<SupermarketTransaction, 'id' | 'createdAt' | 'updatedAt'>
   | Omit<FreelanceTransaction, 'id' | 'createdAt' | 'updatedAt'>;
 
+export type RequestEditTransaction =
+  | Pick<BasicTransaction, 'amount' | 'details' | 'date'>
+  | Pick<SalaryTransaction, 'amount' | 'details' | 'date' | 'employer' | 'extraDetails' | 'job'>
+  | Pick<SupermarketTransaction, 'amount' | 'details' | 'date' | 'storeName' | 'items'>
+  | Pick<FreelanceTransaction, 'amount' | 'details' | 'date' | 'client' | 'project'>;
+
 /**
  * 1. gastos de casa
- * 2. salario
- * 3. Freelance jobs
  * 4. online subscription
- * 5. supermarket
  * 6. online shopping
  * 7. transportation
  * 8. healthcare

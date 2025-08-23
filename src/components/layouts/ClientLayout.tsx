@@ -76,7 +76,7 @@ export function ClientLayout({
         </div>
       </motion.div>
 
-      <div className="min-h-screen">
+      <div className="min-h-screen relative">
         <main className="p-8 pt-12">{children}</main>
       </div>
 

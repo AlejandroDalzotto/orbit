@@ -19,7 +19,7 @@ export default function Home() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="flex flex-1 flex-col max-w-6xl mx-auto"
+      className="flex flex-col max-w-6xl mx-auto"
     >
       <motion.div
         initial={{ y: -20, opacity: 0 }}

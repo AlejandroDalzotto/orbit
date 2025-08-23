@@ -176,13 +176,11 @@ export default function TransactionList({ searchQuery = "" }: TransactionListPro
           ) : null}
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden max-h-96">
-          {sortedTransactions !== null
-            ? sortedTransactions.map((transaction, index) => (
-              <TransactionCard key={transaction.id} transaction={transaction} animationDelay={index * 0.1} />
-            ))
-            : null}
-        </div>
+        {sortedTransactions !== null
+          ? sortedTransactions.map((transaction, index) => (
+            <TransactionCard key={transaction.id} transaction={transaction} animationDelay={index * 0.1} />
+          ))
+          : null}
       </div>
 
       {currentTransactions === null || currentTransactions.length === 0 ? (
