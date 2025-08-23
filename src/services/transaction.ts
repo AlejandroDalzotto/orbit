@@ -1,5 +1,5 @@
 import type { Response } from "@/lib/types";
-import { RequestTransaction, FinancialSummany, Transaction } from "@/models/transaction";
+import { RequestCreateTransaction, FinancialSummany, Transaction, RequestEditTransaction } from "@/models/transaction";
 import { invoke } from "@tauri-apps/api/core";
 
 export class TransactionService {
@@ -32,7 +32,7 @@ export class TransactionService {
     return transaction;
   }
 
-  async addTransaction(newEntry: RequestTransaction): Response<Transaction> {
+  async addTransaction(newEntry: RequestCreateTransaction): Response<Transaction> {
 
     // Validate the new entry
     if (newEntry.amount <= 0) {
@@ -47,11 +47,21 @@ export class TransactionService {
     }
   }
 
-  // updateTransaction(id: string, newValues: NewTransaction): Promise<boolean> {
-  //   throw new Error("Method not implemented.");
-  // }
+  async editTransaction(id: string, newValues: RequestEditTransaction): Response<Transaction> {
+    try {
+      const result = await invoke<Transaction>("edit_transaction", { id, newValues });
+      return [null, result];
+    } catch (e) {
+      return [{ msg: (e as Error).message }, null];
+    }
+  }
 
-  // deleteTransaction(id: string): Promise<boolean> {
-  //   throw new Error("Method not implemented.");
-  // }
+  async deleteTransaction(id: string): Response<Transaction> {
+    try {
+      const result = await invoke<Transaction>("delete_transaction", { id });
+      return [null, result];
+    } catch (e) {
+      return [{ msg: (e as Error).message }, null];
+    }
+  }
 }
