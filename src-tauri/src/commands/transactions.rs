@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{
     models::{
         enums::SchemaVersion,
-        transaction::{FinancialSummary, Transaction, TransactionDB, TransactionUpdateRequest},
+        transaction::{FinancialSummary, RequestCreateTransaction, RequestEditTransaction, Transaction, TransactionDB},
         wallet::WalletDB,
     },
     utils::atomic_write,
@@ -112,7 +112,7 @@ pub async fn get_transaction_by_id(
 
 #[tauri::command]
 pub async fn add_transaction(
-    entry: TransactionUpdateRequest,
+    entry: RequestCreateTransaction,
     app: tauri::AppHandle,
 ) -> Result<Transaction, String> {
     let file_path = app
@@ -302,7 +302,7 @@ pub async fn search_transactions(
 #[tauri::command]
 pub async fn edit_transaction(
     id: String,
-    new_values: TransactionUpdateRequest,
+    new_values: RequestEditTransaction,
     app: tauri::AppHandle,
 ) -> Result<Transaction, String> {
     let file_path = app
@@ -329,6 +329,7 @@ pub async fn edit_transaction(
     };
 
     if let Some(existing_transaction) = transaction_db.data.get_mut(&id) {
+        // Previous amount is discounted to recalculate totals with new information.
         if existing_transaction.is_income() {
             transaction_db.total_income -= existing_transaction.amount;
         } else {
@@ -341,10 +342,6 @@ pub async fn edit_transaction(
         existing_transaction.date = new_values.date;
         existing_transaction.updated_at = now;
         existing_transaction.details = new_values.details;
-        existing_transaction.r#type = new_values.r#type;
-        existing_transaction.affects_balance = new_values.affects_balance;
-        existing_transaction.account_id = new_values.account_id;
-        existing_transaction.category = new_values.category;
         existing_transaction.store_name = new_values.store_name;
         existing_transaction.items = new_values.items;
         existing_transaction.job = new_values.job;
