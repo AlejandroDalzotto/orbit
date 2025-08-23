@@ -1,10 +1,24 @@
 import ItemsForm from "@/components/form/ItemsForm";
-import { TransactionCategory } from "@/models/transaction"
+import {
+  type Item,
+  type Transaction,
+  TransactionCategory
+} from "@/models/transaction";
 
-export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?: string) => {
+export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?: string, transaction?: Transaction) => {
 
   switch (category) {
-    case TransactionCategory.Salary:
+    case TransactionCategory.Salary: {
+      let extraDetails: string | undefined;
+      let employer: string | undefined;
+      let job: string | undefined;
+
+      if (transaction && transaction.category === TransactionCategory.Salary) {
+        extraDetails = transaction.extraDetails || undefined;
+        employer = transaction.employer || undefined;
+        job = transaction.job || undefined;
+      }
+
       return (
         <>
           <div className="flex-1">
@@ -16,6 +30,7 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
             </label>
             <input
               required
+              defaultValue={job}
               placeholder="e.g. Software Engineer"
               className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
               type="text"
@@ -32,6 +47,7 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
               employer
             </label>
             <input
+              defaultValue={employer}
               placeholder="e.g. TechCorp Inc."
               className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
               type="text"
@@ -48,6 +64,7 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
               Extra commentaries
             </label>
             <textarea
+              defaultValue={extraDetails}
               placeholder="Optional commentaries..."
               className="w-full min-h-[4ch] resize-none bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
               name="extraDetails"
@@ -56,8 +73,16 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
           </div>
         </>
       );
+    }
+    case TransactionCategory.Freelance: {
+      let project: string | undefined;
+      let client: string | undefined;
 
-    case TransactionCategory.Freelance:
+      if (transaction && transaction.category === TransactionCategory.Freelance) {
+        project = transaction.project || undefined;
+        client = transaction.client || undefined;
+      }
+
       return (
         <>
           <div className="flex-1">
@@ -68,6 +93,7 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
               client
             </label>
             <input
+              defaultValue={client}
               placeholder="e.g. Local Restaurant"
               className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
               type="text"
@@ -84,6 +110,7 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
               project
             </label>
             <input
+              defaultValue={project}
               placeholder="e.g. Website Redesign"
               className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
               type="text"
@@ -93,7 +120,16 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
           </div>
         </>
       );
-    case TransactionCategory.Supermarket:
+    }
+    case TransactionCategory.Supermarket: {
+      let items: Item[] | undefined;
+      let storeName: string | undefined;
+
+      if (transaction && transaction.category === TransactionCategory.Supermarket) {
+        items = transaction.items || undefined;
+        storeName = transaction.storeName || undefined;
+      }
+
       return (
         <>
           <div className="flex-1">
@@ -104,6 +140,7 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
               store
             </label>
             <input
+              defaultValue={storeName}
               placeholder="e.g. Website Redesign"
               className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
               type="text"
@@ -111,9 +148,10 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
               id={`${fieldPrefix}store`}
             />
           </div>
-          <ItemsForm />
+          <ItemsForm initialValues={items} />
         </>
       );
+    }
     default:
       return null;
   }
