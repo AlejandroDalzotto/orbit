@@ -1,4 +1,5 @@
 import type { Response } from "@/lib/types";
+import { Transaction } from "@/models/transaction";
 import type { Account, CreateAccount, EditAccount } from "@/models/wallet";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -21,12 +22,14 @@ export class WalletService {
     }
   }
 
-  // todo: Getting account history may fail due to the objects structure
-  // Since we are using inheritance, the history may not be all the exact same type,
-  // but they share some common properties from inheritance. So we need to use the base type.
-  // getAccountHistory(id: string): Response<any[]> {
-  //   throw new Error("Method not implemented.");
-  // }
+  async getAccountHistory(id: string): Response<Transaction[]> {
+    try {
+      const result = await invoke<Transaction[]>("get_transactions_by_account_id", { id });
+      return [null, result];
+    } catch (e) {
+      return [{ msg: (e as Error).message }, null];
+    }
+  }
 
   async addAccount(newEntry: CreateAccount): Response<Account> {
     try {

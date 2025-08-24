@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use crate::{
     models::{
         enums::SchemaVersion,
-        transaction::{FinancialSummary, RequestCreateTransaction, RequestEditTransaction, Transaction, TransactionDB},
+        transaction::{
+            FinancialSummary, RequestCreateTransaction, RequestEditTransaction, Transaction,
+            TransactionDB,
+        },
         wallet::WalletDB,
     },
     utils::atomic_write,
@@ -368,5 +371,32 @@ pub async fn edit_transaction(
         Ok(result)
     } else {
         Err("Transaction not found".to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn get_transactions_by_account_id(
+    id: String,
+    app: tauri::AppHandle,
+) -> Result<Vec<Transaction>, String> {
+    let file_path = app
+        .path()
+        .app_local_data_dir()
+        .expect("Could not get app data dir");
+
+    let file_path = file_path.join("transactions.json");
+
+    if file_path.exists() {
+        let content = std::fs::read_to_string(&file_path)
+            .map_err(|e| format!("Failed to read transaction file: {}", e))?;
+
+        let transaction_db: TransactionDB = serde_json::from_str(&content)
+            .map_err(|e| format!("Failed to parse transaction file: {}", e))?;
+
+        let transactions = transaction_db.data.values().filter(|tx| tx.account_id == id).cloned().collect();
+
+        Ok(transactions)
+    } else {
+        Ok(Vec::new())
     }
 }

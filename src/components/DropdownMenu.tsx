@@ -11,6 +11,7 @@ import { Edit, Eye, MoreHorizontal, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import ModalAllTransantionsByAccount from "./modals/ModalAllTransactionsByAccount";
 
 export default function DropdownMenu({
   account
@@ -83,9 +84,17 @@ export default function DropdownMenu({
             <DropdownMenuButton
               text="Transactions"
               color="neutral"
-              disabled
               icon={<Eye className="w-3 h-3" />}
-              onClick={() => { }}
+              onClick={async () => {
+                setIsMenuOpen(false);
+                const [error, transactions] = await service.getAccountHistory(account.id);
+
+                if (error) {
+                  toast.error(error.msg)
+                  return;
+                }
+                open(<ModalAllTransantionsByAccount transactions={transactions} account={account} />)
+              }}
             />
             <DropdownMenuButton
               text="Edit"
