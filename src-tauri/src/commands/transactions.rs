@@ -332,6 +332,47 @@ pub async fn edit_transaction(
     };
 
     if let Some(existing_transaction) = transaction_db.data.get_mut(&id) {
+
+        // If the original transaction does affect the balance, then we need to update the wallet's balance.
+        if existing_transaction.affects_balance {
+            let file_path = file_path
+                .parent()
+                .ok_or("Could not get parent directory")?
+                .join("wallet.json");
+
+            if file_path.exists() {
+                let content = std::fs::read_to_string(&file_path)
+                    .map_err(|e| format!("Failed to read wallet file: {}", e))?;
+
+                let mut wallet_db: WalletDB = serde_json::from_str(&content)
+                    .map_err(|e| format!("Failed to parse wallet file: {}", e))?;
+
+                if let Some(acc) = wallet_db.accounts.get_mut(&existing_transaction.account_id) {
+
+                    if existing_transaction.is_income() {
+
+                        acc.balance -= existing_transaction.amount;
+                        wallet_db.total_balance -= existing_transaction.amount;
+
+                        acc.balance += new_values.amount;
+                        wallet_db.total_balance += new_values.amount;
+                    } else {
+                        acc.balance += existing_transaction.amount;
+                        wallet_db.total_balance += existing_transaction.amount;
+
+                        acc.balance -= new_values.amount;
+                        wallet_db.total_balance -= new_values.amount;
+                    }
+
+                    let updated_content = serde_json::to_string_pretty(&wallet_db)
+                        .map_err(|e| format!("Failed to serialize wallet: {}", e))?;
+
+                    atomic_write(&file_path, &updated_content)
+                        .map_err(|e| format!("Failed to write wallet file: {}", e))?;
+                }
+            }
+        }
+
         // Previous amount is discounted to recalculate totals with new information.
         if existing_transaction.is_income() {
             transaction_db.total_income -= existing_transaction.amount;
@@ -393,7 +434,12 @@ pub async fn get_transactions_by_account_id(
         let transaction_db: TransactionDB = serde_json::from_str(&content)
             .map_err(|e| format!("Failed to parse transaction file: {}", e))?;
 
-        let transactions = transaction_db.data.values().filter(|tx| tx.account_id == id).cloned().collect();
+        let transactions = transaction_db
+            .data
+            .values()
+            .filter(|tx| tx.account_id == id)
+            .cloned()
+            .collect();
 
         Ok(transactions)
     } else {
