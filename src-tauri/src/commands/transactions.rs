@@ -446,3 +446,35 @@ pub async fn get_transactions_by_account_id(
         Ok(Vec::new())
     }
 }
+
+#[tauri::command]
+pub async fn get_transactions_by_category(
+    category: String,
+    app: tauri::AppHandle,
+) -> Result<Vec<Transaction>, String> {
+    let file_path = app
+        .path()
+        .app_local_data_dir()
+        .expect("Could not get app data dir");
+
+    let file_path = file_path.join("transactions.json");
+
+    if file_path.exists() {
+        let content = std::fs::read_to_string(&file_path)
+            .map_err(|e| format!("Failed to read transaction file: {}", e))?;
+
+        let transaction_db: TransactionDB = serde_json::from_str(&content)
+            .map_err(|e| format!("Failed to parse transaction file: {}", e))?;
+
+        let transactions = transaction_db
+            .data
+            .values()
+            .filter(|tx| tx.category == category)
+            .cloned()
+            .collect();
+
+        Ok(transactions)
+    } else {
+        Ok(Vec::new())
+    }
+}

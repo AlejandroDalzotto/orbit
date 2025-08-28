@@ -22,6 +22,7 @@ pub fn run() {
       commands::transactions::search_transactions,
       commands::transactions::edit_transaction,
       commands::transactions::get_transactions_by_account_id,
+      commands::transactions::get_transactions_by_category,
     ])
     .setup(|app| {
       if cfg!(debug_assertions) {
