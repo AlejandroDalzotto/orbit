@@ -11,6 +11,7 @@ import { Edit, Eye, MoreHorizontal, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import ModalTransactionInformation from "./modals/ModalTransactionInformation";
 
 export default function DropdownMenuTransaction({
   transaction
@@ -83,9 +84,13 @@ export default function DropdownMenuTransaction({
             <DropdownMenuButton
               text="View information"
               color="neutral"
-              disabled
               icon={<Eye className="w-3 h-3" />}
-              onClick={() => { }}
+              onClick={() => {
+                setIsMenuOpen(false);
+                open(
+                  <ModalTransactionInformation transaction={transaction} />
+                )
+              }}
             />
             <DropdownMenuButton
               text="Edit"

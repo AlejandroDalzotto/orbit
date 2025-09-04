@@ -1,11 +1,5 @@
+import { dateStringToTimestamp } from "@/lib/utils";
 import type { FreelanceTransaction, Item, RequestCreateTransaction, RequestEditTransaction, SalaryTransaction, SupermarketTransaction, TransactionCategory } from "@/models/transaction"
-
-function dateStringToTimestamp(str: string) {
-  const date = new Date(str)
-  const timestamp = date.getTime() + (date.getTimezoneOffset() * 60000)
-
-  return timestamp
-}
 
 const getString = (fd: FormData, key: string) =>
   (fd.get(key) as string | null) ?? null;

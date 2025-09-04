@@ -1,8 +1,11 @@
 // import type { Series, Transaction } from '@/lib/definitions';
 
-// function formatDate(date: Date): string {
-//   return date.toISOString().split('T')[0]; // yyyy-mm-dd
-// }
+export function dateStringToTimestamp(str: string) {
+  const date = new Date(str)
+  const timestamp = date.getTime() + (date.getTimezoneOffset() * 60000)
+
+  return timestamp
+}
 
 // function getDateRange(start: Date, end: Date): string[] {
 //   const dates: string[] = [];
