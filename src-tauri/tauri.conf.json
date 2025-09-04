@@ -30,10 +30,22 @@
     "targets": "all",
     "icon": [
       "icons/32x32.png",
+      "icons/64x64.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
-      "icons/icon.ico"
+      "icons/icon.ico",
+      "icons/icon.png",
+      "icons/Square30x30Logo.png",
+      "icons/Square44x44Logo.ico",
+      "icons/Square71x71Logo.ico",
+      "icons/Square89x89Logo.ico",
+      "icons/Square107x107Logo.ico",
+      "icons/Square142x142Logo.ico",
+      "icons/Square150x150Logo.ico",
+      "icons/Square284x284Logo.ico",
+      "icons/Square310x310Logo.ico",
+      "icons/StoreLogo.png" 
     ]
   }
 }
