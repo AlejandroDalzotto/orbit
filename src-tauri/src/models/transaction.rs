@@ -139,3 +139,15 @@ pub struct TransactionDB {
     pub total_expenses: f64,
     pub schema_version: SchemaVersion,
 }
+
+impl TransactionDB {
+    pub fn new() -> Self {
+        TransactionDB {
+            data: HashMap::new(),
+            net_balance: 0.0,
+            total_income: 0.0,
+            total_expenses: 0.0,
+            schema_version: SchemaVersion::V1,
+        }
+    }
+}
