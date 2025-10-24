@@ -5,7 +5,6 @@ import WalletField from "@/components/form/WalletField";
 import { useModal } from "@/context/modal-provider";
 import { buildTransactionFromFormData } from "@/helpers/generate-transaction-from-formdata";
 import { renderSpecificFields } from "@/helpers/render-specific-fields";
-import { useTransactions } from "@/hooks/useTransactions";
 import { useTransactionsFinancialSummary } from "@/hooks/useTransactionsFinancialSummary";
 import { useWalletAccounts } from "@/hooks/useWalletAccounts";
 import { useWalletBalance } from "@/hooks/useWalletBalance";
@@ -23,12 +22,16 @@ const categories: Record<TransactionType, TransactionCategory[]> = {
   ],
 }
 
-export default function ModalAddTransaction() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [type, setType] = useState<TransactionType>(TransactionType.Income);
-  const [category, setCategory] = useState<TransactionCategory>(TransactionCategory.Basic);
-  const { close } = useModal();
-  const { mutate: mutateTransactions } = useTransactions({ offset: 0, limit: 50 })
+interface Props {
+  onMutateTransactions: () => void,
+}
+
+export default function ModalAddTransaction({ onMutateTransactions }: Props) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [type, setType] = useState<TransactionType>(TransactionType.Income)
+  const [category, setCategory] = useState<TransactionCategory>(TransactionCategory.Basic)
+  const { close } = useModal()
+
   const { mutate: mutateFinancialData } = useTransactionsFinancialSummary()
   const { mutate: mutateWalletAccounts } = useWalletAccounts()
   const { mutate: mutateWalletBalance } = useWalletBalance()
@@ -42,44 +45,43 @@ export default function ModalAddTransaction() {
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+    e.preventDefault()
+    setIsLoading(true)
 
-    const formData = new FormData(e.target as HTMLFormElement);
-    const category = formData.get('category') as TransactionCategory;
+    const formData = new FormData(e.target as HTMLFormElement)
+    const category = formData.get("category") as TransactionCategory
     const newTransaction = buildTransactionFromFormData(formData, "create", category)
 
     try {
-      const service = new TransactionService();
-      const [error, result] = await service.addTransaction(newTransaction);
+      const service = new TransactionService()
+      const [error, result] = await service.addTransaction(newTransaction)
       if (error) {
         console.log(error.msg)
-        toast.error(error.msg);
-        setIsLoading(false);
-        return;
+        toast.error(error.msg)
+        setIsLoading(false)
+        return
       }
 
-      mutateTransactions();
-      mutateFinancialData();
+      onMutateTransactions()
+      mutateFinancialData()
 
       if (result.affectsBalance) {
-        mutateWalletAccounts();
-        mutateWalletBalance();
+        mutateWalletAccounts()
+        mutateWalletBalance()
       }
-      toast.success(`${result.type} saved successfully.`);
-      close();
+      toast.success(`${result.type} saved successfully.`)
+      close()
     } catch (e) {
       console.error({ e })
-      toast.error(e as string);
+      toast.error(e as string)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
-  const today = new Date();
-  today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-  const todayString = today.toISOString().split('T')[0];
-
+  const today = new Date()
+  today.setMinutes(today.getMinutes() - today.getTimezoneOffset())
+  const todayString = today.toISOString().split("T")[0]
   return (
     <div className="p-6 max-h-[calc(100vh-100px)] text-sm rounded shadow-lg bg-black border border-neutral-700 w-xl overflow-y-auto">
       <h2 className="mb-2 text-lg font-semibold">add transaction</h2>
@@ -87,7 +89,7 @@ export default function ModalAddTransaction() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-y-4">
 
         <div className="flex-1">
-          <label className="block text-neutral-300 font-mono mb-2" htmlFor={`${fieldPrefix}type`}>type</label>
+          <label className="block mb-2 font-mono text-neutral-300" htmlFor={`${fieldPrefix}type`}>type</label>
           <div className="relative">
             <select
               required
@@ -95,7 +97,7 @@ export default function ModalAddTransaction() {
               onChange={(e) => handleTypeChange(e.target.value as TransactionType)}
               defaultValue="income"
               name="type"
-              className="w-full appearance-none bg-black border border-neutral-800 hover:border-neutral-700 focus:border-neutral-700 text-white font-mono font-light px-3 py-2 pr-10 rounded-md cursor-pointer focus:outline-none focus:ring-1 focus:ring-neutral-700 transition-colors"
+              className="w-full px-3 py-2 pr-10 font-mono font-light text-white transition-colors bg-black border rounded-md appearance-none cursor-pointer border-neutral-800 hover:border-neutral-700 focus:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-700"
             >
               <option value="" disabled className="bg-black text-neutral-500">
                 select type
@@ -104,7 +106,7 @@ export default function ModalAddTransaction() {
                 <option
                   key={value}
                   value={value}
-                  className="bg-black text-white"
+                  className="text-white bg-black"
                 >
                   {value}
                 </option>
@@ -113,14 +115,14 @@ export default function ModalAddTransaction() {
 
             {/* Custom chevron icon */}
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-neutral-400" />
+              <ChevronDown className="w-4 h-4 text-neutral-400" />
             </div>
           </div>
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex-1">
             <label
-              className="block text-neutral-300 font-mono mb-2"
+              className="block mb-2 font-mono text-neutral-300"
               htmlFor={`${fieldPrefix}amount`}
             >
               amount
@@ -128,7 +130,7 @@ export default function ModalAddTransaction() {
             <input
               required
               placeholder="0.00"
-              className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
+              className="w-full px-3 py-2 font-mono text-white bg-black border rounded-md border-neutral-800 focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
               type="number"
               name="amount"
               autoComplete="off"
@@ -138,7 +140,7 @@ export default function ModalAddTransaction() {
         </div>
 
         <div className="flex-1">
-          <label className="block text-neutral-300 font-mono mb-2" htmlFor={`${fieldPrefix}category`}>category</label>
+          <label className="block mb-2 font-mono text-neutral-300" htmlFor={`${fieldPrefix}category`}>category</label>
           <div className="relative">
             <select
               required
@@ -146,7 +148,7 @@ export default function ModalAddTransaction() {
               defaultValue={TransactionCategory.Basic}
               onChange={(e) => setCategory(e.target.value as TransactionCategory)}
               name="category"
-              className="w-full appearance-none bg-black border border-neutral-800 hover:border-neutral-700 focus:border-neutral-700 text-white font-mono font-light px-3 py-2 pr-10 rounded-md cursor-pointer focus:outline-none focus:ring-1 focus:ring-neutral-700 transition-colors"
+              className="w-full px-3 py-2 pr-10 font-mono font-light text-white transition-colors bg-black border rounded-md appearance-none cursor-pointer border-neutral-800 hover:border-neutral-700 focus:border-neutral-700 focus:outline-none focus:ring-1 focus:ring-neutral-700"
             >
               <option value="" disabled className="bg-black text-neutral-500">
                 select category
@@ -155,7 +157,7 @@ export default function ModalAddTransaction() {
                 <option
                   key={value}
                   value={value}
-                  className="bg-black text-white"
+                  className="text-white bg-black"
                 >
                   {value}
                 </option>
@@ -164,7 +166,7 @@ export default function ModalAddTransaction() {
 
             {/* Custom chevron icon */}
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-neutral-400" />
+              <ChevronDown className="w-4 h-4 text-neutral-400" />
             </div>
           </div>
         </div>
@@ -175,15 +177,15 @@ export default function ModalAddTransaction() {
 
         <div>
           <label
-            className="block text-neutral-300 font-mono mb-2"
+            className="block mb-2 font-mono text-neutral-300"
             htmlFor={`${fieldPrefix}date`}
           >
-            date<span className="text-neutral-500 font-mono text-xs"> • today&apos;s date set by default</span>
+            date<span className="font-mono text-xs text-neutral-500"> • today&apos;s date set by default</span>
           </label>
           <input
             required
             defaultValue={todayString}
-            className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
+            className="w-full px-3 py-2 font-mono text-white bg-black border rounded-md border-neutral-800 focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
             type="date"
             name="date"
             id={`${fieldPrefix}date`}
@@ -192,7 +194,7 @@ export default function ModalAddTransaction() {
 
         <div>
           <label
-            className="block text-neutral-300 font-mono mb-2"
+            className="block mb-2 font-mono text-neutral-300"
             htmlFor={`${fieldPrefix}details`}
           >
             details

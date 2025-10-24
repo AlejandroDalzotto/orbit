@@ -1,35 +1,35 @@
-"use client";
+"use client"
 
-import DropdownMenuButton from "@/components/buttons/DropdownMenuButton";
-import ModalEditTransaction from "@/components/modals/ModalEditTransaction";
-import { useModal } from "@/context/modal-provider";
-import { useTransactions } from "@/hooks/useTransactions";
-import { useTransactionsFinancialSummary } from "@/hooks/useTransactionsFinancialSummary";
-import { Transaction } from "@/models/transaction";
-import { TransactionService } from "@/services/transaction";
-import { Edit, Eye, MoreHorizontal, Trash2 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-import ModalTransactionInformation from "./modals/ModalTransactionInformation";
+import DropdownMenuButton from "@/components/buttons/DropdownMenuButton"
+import ModalEditTransaction from "@/components/modals/ModalEditTransaction"
+import { useModal } from "@/context/modal-provider"
+import { useTransactionsFinancialSummary } from "@/hooks/useTransactionsFinancialSummary"
+import type { Transaction } from "@/models/transaction"
+import { TransactionService } from "@/services/transaction"
+import { Edit, Eye, MoreHorizontal, Trash2 } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import { useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
+import ModalTransactionInformation from "./modals/ModalTransactionInformation"
 
-export default function DropdownMenuTransaction({
-  transaction
-}: {
-  transaction: Transaction
-}) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [renderAbove, setRenderAbove] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+interface Props {
+  transaction: Transaction,
+  onMutateTransactions: () => void,
+}
 
-  const service = new TransactionService();
-  const { mutate: mutateTransactions } = useTransactions({ limit: 50, offset: 0 });
-  const { mutate: mutateFinancialSummary } = useTransactionsFinancialSummary();
-  const { open } = useModal();
+export default function DropdownMenuTransaction({ transaction, onMutateTransactions }: Props) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [renderAbove, setRenderAbove] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  const service = new TransactionService()
+  
+  const { mutate: mutateFinancialSummary } = useTransactionsFinancialSummary()
+  const { open } = useModal()
 
   useEffect(() => {
-    if (!isMenuOpen) return;
+    if (!isMenuOpen) return
 
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -38,29 +38,29 @@ export default function DropdownMenuTransaction({
         buttonRef.current &&
         !buttonRef.current.contains(event.target as Node)
       ) {
-        setIsMenuOpen(false);
+        setIsMenuOpen(false)
       }
     }
 
     function checkPosition() {
       if (buttonRef.current) {
-        const rect = buttonRef.current.getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom;
-        setRenderAbove(spaceBelow < 220); // 220px is estimated menu height
+        const rect = buttonRef.current.getBoundingClientRect()
+        const spaceBelow = window.innerHeight - rect.bottom
+        setRenderAbove(spaceBelow < 220)
       }
     }
 
-    checkPosition();
-    document.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("resize", checkPosition);
-    window.addEventListener("scroll", checkPosition, true);
+    checkPosition()
+    document.addEventListener("mousedown", handleClickOutside)
+    window.addEventListener("resize", checkPosition)
+    window.addEventListener("scroll", checkPosition, true)
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("resize", checkPosition);
-      window.removeEventListener("scroll", checkPosition, true);
-    };
-  }, [isMenuOpen]);
+      document.removeEventListener("mousedown", handleClickOutside)
+      window.removeEventListener("resize", checkPosition)
+      window.removeEventListener("scroll", checkPosition, true)
+    }
+  }, [isMenuOpen])
 
   return (
     <div className="relative" ref={menuRef}>
@@ -86,10 +86,8 @@ export default function DropdownMenuTransaction({
               color="neutral"
               icon={<Eye className="w-3 h-3" />}
               onClick={() => {
-                setIsMenuOpen(false);
-                open(
-                  <ModalTransactionInformation transaction={transaction} />
-                )
+                setIsMenuOpen(false)
+                open(<ModalTransactionInformation transaction={transaction} />)
               }}
             />
             <DropdownMenuButton
@@ -97,8 +95,8 @@ export default function DropdownMenuTransaction({
               color="neutral"
               icon={<Edit className="w-3 h-3" />}
               onClick={() => {
-                setIsMenuOpen(false);
-                open(<ModalEditTransaction transaction={transaction} />)
+                setIsMenuOpen(false)
+                open(<ModalEditTransaction onMutateTransactions={onMutateTransactions} transaction={transaction} />)
               }}
             />
             <DropdownMenuButton
@@ -106,16 +104,16 @@ export default function DropdownMenuTransaction({
               color="red"
               icon={<Trash2 className="w-3 h-3" />}
               onClick={() => {
-                if (confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
-                  service.deleteTransaction(transaction.id).then(([error,]) => {
+                if (confirm("Are you sure you want to delete this transaction? This action cannot be undone.")) {
+                  service.deleteTransaction(transaction.id).then(([error]) => {
                     if (error) {
-                      toast.error(`Error deleting account: ${error.msg}`);
+                      toast.error(`Error deleting account: ${error.msg}`)
                     } else {
-                      mutateTransactions();
-                      mutateFinancialSummary();
-                      toast.success(`Transaction deleted successfully.`);
+                      onMutateTransactions()
+                      mutateFinancialSummary()
+                      toast.success(`Transaction deleted successfully.`)
                     }
-                  });
+                  })
                 }
               }}
             />
@@ -123,6 +121,5 @@ export default function DropdownMenuTransaction({
         )}
       </AnimatePresence>
     </div>
-  );
+  )
 }
-

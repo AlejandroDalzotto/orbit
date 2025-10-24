@@ -3,7 +3,6 @@
 import { useModal } from "@/context/modal-provider";
 import { buildTransactionFromFormData } from "@/helpers/generate-transaction-from-formdata";
 import { renderSpecificFields } from "@/helpers/render-specific-fields";
-import { useTransactions } from "@/hooks/useTransactions";
 import { useTransactionsFinancialSummary } from "@/hooks/useTransactionsFinancialSummary";
 import { useWalletAccounts } from "@/hooks/useWalletAccounts";
 import { useWalletBalance } from "@/hooks/useWalletBalance";
@@ -12,10 +11,15 @@ import { TransactionService } from "@/services/transaction";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export default function ModalEditTransaction({ transaction }: { transaction: Transaction }) {
-  const [isLoading, setIsLoading] = useState(false);
-  const { close } = useModal();
-  const { mutate: mutateTransactions } = useTransactions({ offset: 0, limit: 50 })
+interface Props {
+  transaction: Transaction,
+  onMutateTransactions: () => void,
+}
+
+export default function ModalEditTransaction({ transaction, onMutateTransactions }: Props) {
+  const [isLoading, setIsLoading] = useState(false)
+  const { close } = useModal()
+
   const { mutate: mutateFinancialData } = useTransactionsFinancialSummary()
   const { mutate: mutateWalletAccounts } = useWalletAccounts()
   const { mutate: mutateWalletBalance } = useWalletBalance()
@@ -23,41 +27,41 @@ export default function ModalEditTransaction({ transaction }: { transaction: Tra
   const fieldPrefix = "transaction-"
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+    e.preventDefault()
+    setIsLoading(true)
 
-    const formData = new FormData(e.target as HTMLFormElement);
+    const formData = new FormData(e.target as HTMLFormElement)
 
     const newTransaction: RequestEditTransaction = buildTransactionFromFormData(formData, "edit", transaction.category)
     try {
-      const service = new TransactionService();
-      const [error, result] = await service.editTransaction(transaction.id, newTransaction);
+      const service = new TransactionService()
+      const [error, result] = await service.editTransaction(transaction.id, newTransaction)
       if (error) {
         console.log(error.msg)
-        toast.error(error.msg);
-        setIsLoading(false);
-        return;
+        toast.error(error.msg)
+        setIsLoading(false)
+        return
       }
 
-      mutateTransactions();
-      mutateFinancialData();
+      onMutateTransactions()
+      mutateFinancialData()
 
       if (result.affectsBalance) {
-        mutateWalletAccounts();
-        mutateWalletBalance();
+        mutateWalletAccounts()
+        mutateWalletBalance()
       }
-      toast.success(`${result.type} saved successfully.`);
-      close();
+      toast.success(`${result.type} saved successfully.`)
+      close()
     } catch (e) {
       console.error({ e })
-      toast.error(e as string);
+      toast.error(e as string)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
   const date = new Date(transaction.date)
-  const dateString = date.toISOString().split('T')[0];
+  const dateString = date.toISOString().split("T")[0]
 
   return (
     <div className="p-6 max-h-[calc(100vh-100px)] text-sm rounded shadow-lg bg-black border border-neutral-700 w-xl overflow-y-auto">
@@ -67,7 +71,7 @@ export default function ModalEditTransaction({ transaction }: { transaction: Tra
         <div className="flex items-center space-x-4">
           <div className="flex-1">
             <label
-              className="block text-neutral-300 font-mono mb-2"
+              className="block mb-2 font-mono text-neutral-300"
               htmlFor={`${fieldPrefix}amount`}
             >
               amount
@@ -76,7 +80,7 @@ export default function ModalEditTransaction({ transaction }: { transaction: Tra
               defaultValue={transaction.amount}
               required
               placeholder="0.00"
-              className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
+              className="w-full px-3 py-2 font-mono text-white bg-black border rounded-md border-neutral-800 focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
               type="number"
               name="amount"
               autoComplete="off"
@@ -89,7 +93,7 @@ export default function ModalEditTransaction({ transaction }: { transaction: Tra
 
         <div>
           <label
-            className="block text-neutral-300 font-mono mb-2"
+            className="block mb-2 font-mono text-neutral-300"
             htmlFor={`${fieldPrefix}date`}
           >
             date
@@ -97,7 +101,7 @@ export default function ModalEditTransaction({ transaction }: { transaction: Tra
           <input
             required
             defaultValue={dateString}
-            className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
+            className="w-full px-3 py-2 font-mono text-white bg-black border rounded-md border-neutral-800 focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
             type="date"
             name="date"
             id={`${fieldPrefix}date`}
@@ -106,7 +110,7 @@ export default function ModalEditTransaction({ transaction }: { transaction: Tra
 
         <div>
           <label
-            className="block text-neutral-300 font-mono mb-2"
+            className="block mb-2 font-mono text-neutral-300"
             htmlFor={`${fieldPrefix}details`}
           >
             details
