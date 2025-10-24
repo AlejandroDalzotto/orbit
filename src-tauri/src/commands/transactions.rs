@@ -1,5 +1,6 @@
 use crate::{
     models::{
+        enums::SortOption,
         index::PaginationResult,
         transaction::{
             FinancialSummary, RequestCreateTransaction, RequestEditTransaction, Transaction,
@@ -32,22 +33,6 @@ fn load_db(app: &tauri::AppHandle) -> Result<TransactionDB, String> {
         .map_err(|e| format!("Failed to parse transactions file: {}", e))?;
 
     Ok(transaction_db)
-}
-
-#[tauri::command]
-pub async fn get_transactions(
-    app: tauri::AppHandle,
-    limit: usize,
-    offset: usize,
-) -> Result<PaginationResult<Transaction>, String> {
-    // Load all transactions
-    let db = load_db(&app)?;
-
-    let transactions: Vec<Transaction> = db.data.into_values().collect();
-
-    let paginated_results = PaginationResult::from(transactions, limit, offset);
-
-    Ok(paginated_results)
 }
 
 #[tauri::command]
@@ -224,34 +209,60 @@ pub async fn search_transactions(
     query: String,
     limit: usize,
     offset: usize,
+    sort_by: SortOption,
 ) -> Result<PaginationResult<Transaction>, String> {
     let db = load_db(&app)?;
-
     let query_lower = query.to_lowercase();
 
-    let filtered_transactions: Vec<Transaction> = db.data
-        .into_values()
-        .filter(|transaction| {
-            // Search in details
-            transaction.details.to_lowercase().contains(&query_lower) ||
-            // Search in category
-            transaction.category.to_lowercase().contains(&query_lower) ||
-            // Search in specific fields based on transaction type
-            match transaction.get_type().as_str() {
-                "salary" => {
-                    transaction.job.as_ref().map_or(false, |job| job.to_lowercase().contains(&query_lower)) ||
-                    transaction.employer.as_ref().map_or(false, |employer| employer.to_lowercase().contains(&query_lower))
-                },
-                "freelance" => {
-                    transaction.client.as_ref().map_or(false, |client| client.to_lowercase().contains(&query_lower)) ||
-                    transaction.project.as_ref().map_or(false, |project| project.to_lowercase().contains(&query_lower))
-                },
-                _ => false
-            }
-        })
-        .collect();
+    // 1. Get the base list (either all or filtered)
+    let mut transactions: Vec<Transaction> = if query_lower.is_empty() {
+        db.data.into_values().collect()
+    } else {
+        db.data
+            .into_values()
+            .filter(|transaction| {
+                // Search in details
+                transaction.details.to_lowercase().contains(&query_lower) ||
+                // Search in category
+                transaction.category.to_lowercase().contains(&query_lower) ||
+                // Search in specific fields based on transaction type
+                match transaction.get_type().as_str() {
+                    "salary" => {
+                        transaction.job.as_ref().map_or(false, |job| job.to_lowercase().contains(&query_lower)) ||
+                        transaction.employer.as_ref().map_or(false, |employer| employer.to_lowercase().contains(&query_lower))
+                    },
+                    "freelance" => {
+                        transaction.client.as_ref().map_or(false, |client| client.to_lowercase().contains(&query_lower)) ||
+                        transaction.project.as_ref().map_or(false, |project| project.to_lowercase().contains(&query_lower))
+                    },
+                    _ => false
+                }
+            })
+            .collect()
+    };
 
-    let paginated_transactions = PaginationResult::from(filtered_transactions, limit, offset);
+    // 2. Apply sorting to the list (this now runs for *all* cases)
+    match sort_by {
+        SortOption::Latest => transactions.sort_by(|a, b| b.date.cmp(&a.date)),
+        SortOption::Oldest => transactions.sort_by(|a, b| a.date.cmp(&b.date)),
+        SortOption::Balance => {
+            transactions.sort_by(|a, b| b.amount.partial_cmp(&a.amount).unwrap())
+        }
+        SortOption::Income => {
+            // This filters the list to *only* income
+            transactions.retain(|t| t.is_income());
+            transactions.sort_by(|a, b| b.amount.partial_cmp(&a.amount).unwrap())
+        }
+        SortOption::Expenses => {
+            // This filters the list to *only* expenses
+            transactions.retain(|t| !t.is_income());
+            // **FIXED:** Sort lowest-to-highest (e.g., -100 before -50)
+            transactions.sort_by(|a, b| a.amount.partial_cmp(&b.amount).unwrap())
+        }
+    }
+
+    // 3. Paginate the final, sorted list
+    let paginated_transactions = PaginationResult::from(transactions, limit, offset);
 
     Ok(paginated_transactions)
 }
@@ -364,11 +375,14 @@ pub async fn get_transactions_by_account_id(
     let db = load_db(&app)?;
 
     if db.data.len() > 0 {
-        let transactions: Vec<Transaction> = db
+        let mut transactions: Vec<Transaction> = db
             .data
             .into_values()
             .filter(|tx| tx.account_id == id)
             .collect();
+
+        // Sort by latest date first
+        transactions.sort_by(|a, b| b.date.cmp(&a.date));
 
         let paginated_results = PaginationResult::from(transactions, limit, offset);
 
@@ -388,11 +402,14 @@ pub async fn get_transactions_by_category(
     let db = load_db(&app)?;
 
     if db.data.len() > 0 {
-        let transactions = db
+        let mut transactions: Vec<Transaction> = db
             .data
             .into_values()
             .filter(|tx| tx.category == category)
             .collect();
+
+        // Sort by latest date first
+        transactions.sort_by(|a, b| b.date.cmp(&a.date));
 
         let paginated_results = PaginationResult::from(transactions, limit, offset);
 
