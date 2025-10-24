@@ -3,14 +3,6 @@ import { RequestCreateTransaction, FinancialSummany, Transaction, RequestEditTra
 import { invoke } from "@tauri-apps/api/core";
 
 export class TransactionService {
-  async getTransactions(): Response<Transaction[]> {
-    try {
-      const data = await invoke("get_transactions") as Transaction[];
-      return [null, data];
-    } catch (error) {
-      return [{ msg: error as string }, null];
-    }
-  }
 
   async getFinancialSummary(): Response<FinancialSummany> {
     try {
