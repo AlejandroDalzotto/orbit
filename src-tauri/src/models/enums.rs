@@ -32,3 +32,13 @@ pub enum TransactionType {
     Income,
     Expense,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum SortOption {
+    Latest,
+    Oldest,
+    Balance,
+    Income,
+    Expenses
+}
