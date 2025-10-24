@@ -1,7 +1,8 @@
 "use client"
 
 import { Search, X } from "lucide-react"
-import { useState, useEffect } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { useCallback, useEffect, useState } from "react"
 
 const useDebounce = (value: string, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value)
@@ -11,53 +12,79 @@ const useDebounce = (value: string, delay: number) => {
       setDebouncedValue(value)
     }, delay)
 
-    return () => {
-      clearTimeout(handler)
-    }
+    return () => clearTimeout(handler)
   }, [value, delay])
 
   return debouncedValue
 }
 
 interface SearchbarProps {
-  onSearch: (query: string) => void
   placeholder?: string
   className?: string
 }
 
 export default function Searchbar({
-  onSearch,
   placeholder = "search transactions...",
   className = "",
 }: SearchbarProps) {
-  const [search, setSearch] = useState("")
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const initial = searchParams?.get("search") ?? ""
+  const [search, setSearch] = useState(initial)
   const debouncedSearch = useDebounce(search, 300)
 
+  // build a full url for navigation; if value is empty it removes the param
+  const buildUrl = useCallback(
+    (name: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (value) params.set(name, value)
+      else params.delete(name)
+
+      const qs = params.toString()
+      return pathname + (qs ? `?${qs}` : "")
+    },
+    [pathname, searchParams]
+  )
+
+  // keep local input in sync when the URL changes externally
   useEffect(() => {
-    onSearch(debouncedSearch)
-  }, [debouncedSearch, onSearch])
+    const urlValue = searchParams?.get("search") ?? ""
+    setSearch(urlValue)
+  }, [searchParams])
+
+  // push to router only when debounced value differs from current url param
+  useEffect(() => {
+    const currentParam = searchParams?.get("search") ?? ""
+    if (debouncedSearch !== currentParam) {
+      router.push(buildUrl("search", debouncedSearch))
+    }
+  }, [debouncedSearch, buildUrl, router, searchParams])
 
   const clearSearch = () => {
     setSearch("")
+    // remove param immediately
+    router.push(buildUrl("search", ""))
   }
 
   return (
     <div className={`relative ${className}`}>
-      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-600 h-4 w-4" />
+      <Search className="absolute w-4 h-4 transform -translate-y-1/2 left-3 top-1/2 text-neutral-600" />
       <input
         type="text"
         placeholder={placeholder}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="pl-10 pr-10 py-1 rounded-md border outline-none focus:ring-neutral-800 ring-2 ring-transparent transition-all bg-black border-neutral-800 text-white font-mono placeholder:text-neutral-600 w-full"
+        className="w-full py-1 pl-10 pr-10 font-mono text-white transition-all bg-black border rounded-md outline-none focus:ring-neutral-800 ring-2 ring-transparent border-neutral-800 placeholder:text-neutral-600"
       />
 
       {search && (
         <button
           onClick={clearSearch}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
+          className="absolute transition-colors transform -translate-y-1/2 right-3 top-1/2 text-neutral-400 hover:text-white"
         >
-          <X className="h-4 w-4" />
+          <X className="w-4 h-4" />
         </button>
       )}
     </div>
