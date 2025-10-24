@@ -14,7 +14,6 @@ pub fn run() {
       commands::wallet::delete_account,
       commands::wallet::edit_account,
 
-      commands::transactions::get_transactions,
       commands::transactions::get_financial_summary,
       commands::transactions::get_transaction_by_id,
       commands::transactions::add_transaction,
