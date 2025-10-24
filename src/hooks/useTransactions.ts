@@ -1,42 +1,42 @@
+import { PaginationResult, SortOption } from "@/lib/types"
 import type { Transaction } from "@/models/transaction"
 import { invoke } from "@tauri-apps/api/core"
 import useSWR from "swr"
 
-type PaginationProps = {
-  limit: number
-  offset: number
-}
-
 type SearchProps = {
   query: string
-  limit?: number
+  limit: number
+  offset: number
+  sortBy: SortOption
 }
 
-const transactionsFetcher = ({ limit, offset }: PaginationProps) => invoke("get_transactions", { limit, offset })
+const searchFetcher = ({ query, limit, offset, sortBy }: SearchProps) =>
+  invoke<PaginationResult<Transaction>>("search_transactions", { query, limit, offset, sortBy })
 
-const searchFetcher = ({ query, limit = 50 }: SearchProps) =>
-  query.trim() ? invoke("search_transactions", { query, limit }) : Promise.resolve([])
+export const useTransactionSearch = ({ query, limit, offset, sortBy }: SearchProps) => {
 
-export const useTransactions = ({ limit, offset }: PaginationProps) => {
-  const { data, error, isLoading, mutate } = useSWR(["transactions", { limit, offset }], transactionsFetcher)
+  const swrKey = { query, limit, offset, sortBy }
 
-  return {
-    transactions: data as Transaction[],
-    error,
-    isLoading,
-    mutate,
-  }
-}
-
-export const useTransactionSearch = ({ query, limit }: SearchProps) => {
-  const { data, error, isLoading } = useSWR(query.trim() ? ["search", query, limit] : null, () =>
-    searchFetcher({ query, limit }),
+  const { data, error, isLoading, mutate } = useSWR(
+    swrKey,
+    searchFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateIfStale: false,
+      revalidateOnReconnect: false,
+    }
   )
 
   return {
-    searchResults: (data as Transaction[]) || [],
+    transactions: data?.items as Transaction[] || [],
+    total: data?.total ?? 0,
+    totalPages: data?.totalPages ?? 0,
+    hasNext: data?.hasNext ?? false,
+    hasPrevious: data?.hasPrevious ?? false,
+    currentPage: data?.page ?? 1,
     error,
-    isLoading: isLoading && query.trim().length > 0,
+    isLoading,
     hasQuery: query.trim().length > 0,
+    mutate,
   }
 }
