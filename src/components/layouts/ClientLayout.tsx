@@ -35,7 +35,7 @@ export function ClientLayout({
 
       {/* Elegant sidebar indicator */}
       <motion.div
-        className="fixed left-0 top-1/2 -translate-y-1/2 z-40 pointer-events-none"
+        className="fixed left-0 z-40 -translate-y-1/2 pointer-events-none top-1/2"
         initial={{ opacity: 0 }}
         animate={{
           opacity: showIndicator ? 0.4 : 0,
@@ -55,7 +55,7 @@ export function ClientLayout({
           />
 
           <motion.div
-            className="ml-2 flex flex-col items-center"
+            className="flex flex-col items-center ml-2"
             animate={{
               opacity: mouseX < 100 ? 0.8 : 0.3,
               x: mouseX < 100 ? 4 : 0,
@@ -64,19 +64,19 @@ export function ClientLayout({
           >
             {/* Vertical "sidebar" text */}
             <div
-              className="text-neutral-500 text-xs font-mono tracking-wider"
+              className="font-mono text-xs tracking-wider text-neutral-500"
               style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
             >
               sidebar
             </div>
 
             {/* Small arrow hint */}
-            <div className="mt-2 text-neutral-500 text-xs font-mono">→</div>
+            <div className="mt-2 font-mono text-xs text-neutral-500">→</div>
           </motion.div>
         </div>
       </motion.div>
 
-      <div className="min-h-screen relative">
+      <div className="relative min-h-screen">
         <main className="p-8 pt-12">{children}</main>
       </div>
 
