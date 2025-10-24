@@ -1,111 +1,79 @@
 "use client"
 
+import type React from "react"
+
 import ButtonAddTransaction from "@/components/buttons/ButtonAddTransaction"
 import TransactionCard from "@/components/TransactionCard"
-import { useTransactions, useTransactionSearch } from "@/hooks/useTransactions"
-import type { Transaction } from "@/models/transaction"
-import { ChevronDown } from "lucide-react"
-import { AnimatePresence, motion } from "motion/react"
-import { useEffect, useRef, useState } from "react"
+import { useTransactionSearch } from "@/hooks/useTransactions"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import { motion } from "motion/react"
+import { useCallback, useState } from "react"
+import { getPageNumbers } from "@/lib/utils"
+import SortOptionsSelectorTransactions from "./SortOptionsSelectorTransactions"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { SortOption } from "@/lib/types"
 
-type SortOption = "latest" | "oldest" | "balance" | "income" | "expenses"
+export default function TransactionList() {
+  const [pageInput, setPageInput] = useState("")
 
-function sortTransactions(
-  transactions: Transaction[] | null,
-  sortBy: "balance" | "latest" | "oldest" | "expenses" | "income",
-) {
-  if (!transactions) return null
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const router = useRouter()
 
-  const getTime = (date?: string | number) => new Date(date || 0).getTime()
+  const currentPage = Number(searchParams.get('currentPage')) || 1;
+  const limit = Number(searchParams.get('limit')) || 10;
+  const search = searchParams.get('search') || "";
+  const sortBy = searchParams.get('sortBy') as SortOption || "latest";
 
-  let result = [...transactions]
+  const { transactions, total, totalPages, hasNext, hasPrevious, error, hasQuery, mutate } = useTransactionSearch({
+    query: search,
+    limit,
+    offset: (currentPage - 1) * limit,
+    sortBy
+  })
 
-  switch (sortBy) {
-    case "balance":
-      result.sort((a, b) => b.amount - a.amount)
-      break
+  const startItem = total > 0 ? (currentPage - 1) * limit + 1 : 0
+  const endItem = Math.min(currentPage * limit, total)
 
-    case "latest":
-      result.sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt))
-      break
+  // build a full url for navigation; if value is empty it removes the param
+  const buildUrl = useCallback(
+    (name: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (value) params.set(name, value)
+      else params.delete(name)
 
-    case "oldest":
-      result.sort((a, b) => getTime(a.createdAt) - getTime(b.createdAt))
-      break
+      const qs = params.toString()
+      return pathname + (qs ? `?${qs}` : "")
+    },
+    [pathname, searchParams]
+  )
 
-    case "income":
-      result = result.filter((t) => t.type === "income")
-      break
-
-    case "expenses":
-      result = result.filter((t) => t.type === "expense")
-      break
+  const onMutateTransactions = () => {
+    mutate()
   }
 
-  return result
-}
-
-interface TransactionListProps {
-  searchQuery?: string
-}
-
-export default function TransactionList({ searchQuery = "" }: TransactionListProps) {
-  const {
-    transactions,
-    error: transactionsError,
-    isLoading: transactionsLoading,
-  } = useTransactions({ offset: 0, limit: 50 })
-  const {
-    searchResults,
-    error: searchError,
-    isLoading: searchLoading,
-    hasQuery,
-  } = useTransactionSearch({ query: searchQuery })
-
-  const [sortBy, setSortBy] = useState<SortOption>("latest")
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-
-  const menuRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
-
-  const sortOptions = [
-    { value: "balance" as const, label: "Highest Balance" },
-    { value: "oldest" as const, label: "Oldest" },
-    { value: "latest" as const, label: "Most Recent" },
-    { value: "income" as const, label: "Income only" },
-    { value: "expenses" as const, label: "Expenses only" },
-  ]
-
-  const currentTransactions = hasQuery ? searchResults : transactions
-  const currentError = hasQuery ? searchError : transactionsError
-  const currentLoading = hasQuery ? searchLoading : transactionsLoading
-
-  const sortedTransactions = sortTransactions(currentTransactions, sortBy)
-
-  useEffect(() => {
-    if (!isMenuOpen) return
-
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsMenuOpen(false)
-      }
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      router.push(buildUrl('currentPage', page.toString()))
     }
+  }
 
-    document.addEventListener("mousedown", handleClickOutside)
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
+  const handlePageInputSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const page = Number.parseInt(pageInput)
+    if (!isNaN(page) && page >= 1 && page <= totalPages) {
+      goToPage(page)
+      setPageInput("")
     }
-  }, [isMenuOpen])
+  }
 
-  if (currentLoading) return <div className="text-neutral-400 font-mono">Loading...</div>
-  if (currentError)
-    return <div className="text-red-400 font-mono">Something went wrong while trying to get transactions data.</div>
+  if (error) {
+    return (
+      <div className="grid font-mono text-red-400 grow place-content-center">
+        Something went wrong while trying to get transactions data.
+      </div>
+    )
+  }
 
   return (
     <>
@@ -113,77 +81,81 @@ export default function TransactionList({ searchQuery = "" }: TransactionListPro
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <h2 className="font-light tracking-wider text-neutral-200">Transactions</h2>
-            {hasQuery && (
+            {total > 0 && (
               <motion.span
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0 }}
-                className="text-xs text-neutral-500 font-mono"
+                className="font-mono text-xs text-neutral-500"
               >
-                {currentTransactions?.length} results
+                showing {startItem}-{endItem} of {total} transactions
               </motion.span>
             )}
           </div>
 
-          {currentTransactions !== null && currentTransactions.length > 0 ? (
-            <AnimatePresence>
-              <div className="flex items-center space-x-2">
-                <p className="text-xs text-neutral-500">sort by</p>
-                <div className="relative w-3xs" ref={menuRef}>
-                  <button
-                    ref={buttonRef}
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="w-full px-3 py-2 pr-8 font-mono text-sm font-light text-left transition-colors bg-black border rounded-md appearance-none cursor-pointer border-neutral-800 hover:border-neutral-700 text-neutral-400 hover:text-white focus:outline-none focus:ring-1 focus:ring-neutral-700"
-                  >
-                    {sortOptions.find((option) => option.value === sortBy)?.label}
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <motion.div animate={{ rotate: isMenuOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                        <ChevronDown className="w-3 h-3 text-neutral-400" />
-                      </motion.div>
-                    </div>
-                  </button>
-
-                  <AnimatePresence>
-                    {isMenuOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute left-0 right-0 z-50 mt-1 bg-black border rounded-md shadow-lg top-full border-neutral-800"
-                      >
-                        {sortOptions.map((option) => (
-                          <button
-                            key={option.value}
-                            onClick={() => {
-                              setSortBy(option.value)
-                              setIsMenuOpen(false)
-                            }}
-                            className={`w-full text-left px-3 py-2 text-sm font-mono font-light transition-colors first:rounded-t-md last:rounded-b-md ${sortBy === option.value
-                              ? "bg-neutral-900 text-white"
-                              : "text-neutral-400 hover:text-white hover:bg-neutral-900"
-                              }`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </AnimatePresence>
-          ) : null}
+          <SortOptionsSelectorTransactions shouldRender={transactions.length > 0} />
         </div>
 
-        {sortedTransactions !== null
-          ? sortedTransactions.map((transaction, index) => (
-            <TransactionCard key={transaction.id} transaction={transaction} animationDelay={index * 0.1} />
-          ))
-          : null}
+        {totalPages > 1 ? (
+          <div className="flex items-center justify-between py-3 border-y border-neutral-800">
+            <form onSubmit={handlePageInputSubmit} className="flex items-center gap-2">
+              <span className="font-mono text-xs text-neutral-500">go to</span>
+              <input
+                max={totalPages}
+                min={1}
+                type="number"
+                value={pageInput}
+                onChange={(e) => setPageInput(e.target.value)}
+                placeholder="page..."
+                className="w-24 px-2 py-1 font-mono text-sm bg-black border rounded border-neutral-800 text-neutral-400 placeholder:text-neutral-600 focus:outline-none focus:border-neutral-700"
+              />
+            </form>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={!hasPrevious}
+                className="p-2 transition-colors text-neutral-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-1">
+                {getPageNumbers(currentPage, totalPages).map((page, index) => (
+                  <div key={index}>
+                    {page === "..." ? (
+                      <span className="px-2 font-mono text-sm select-none text-neutral-600">...</span>
+                    ) : (
+                      <button
+                        onClick={() => goToPage(page as number)}
+                        className={`px-3 select-none py-1 text-sm font-mono rounded transition-colors ${currentPage === page
+                          ? "bg-white text-black"
+                          : "text-neutral-400 hover:text-white hover:bg-neutral-900"
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={!hasNext}
+                className="p-2 transition-colors text-neutral-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {transactions.map((transaction, i) => (
+          <TransactionCard key={transaction.id} onMutate={onMutateTransactions} transaction={transaction} animationDelay={i * 0.1} />
+        ))}
       </div>
 
-      {currentTransactions === null || currentTransactions.length === 0 ? (
+      {total === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -193,9 +165,9 @@ export default function TransactionList({ searchQuery = "" }: TransactionListPro
           <p className="mb-8 font-light text-neutral-500">
             {hasQuery ? "No transactions found for your search" : "No transactions registered yet"}
           </p>
-          {!hasQuery && <ButtonAddTransaction text="Add your first transaction" />}
+          {!hasQuery && <ButtonAddTransaction onMutate={onMutateTransactions} text="Add your first transaction" />}
         </motion.div>
-      ) : null}
+      )}
     </>
   )
 }
