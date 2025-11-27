@@ -20,6 +20,14 @@ pub enum AccountType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum LeakDateRange {
+    Week,
+    Month,
+    Year,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Currency {
     USD,
@@ -31,14 +39,17 @@ pub enum Currency {
 pub enum TransactionType {
     Income,
     Expense,
+    Transfer,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "camelCase")]
 pub enum SortOption {
     Latest,
     Oldest,
-    Balance,
+    Cheapest,
+    MostExpensive,
     Income,
-    Expenses
+    Expenses,
+    Transfers,
 }

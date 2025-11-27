@@ -33,16 +33,4 @@ impl<T> PaginationResult<T> {
             has_previous: offset > 0,
         }
     }
-
-    pub fn new() -> Self {
-      PaginationResult {
-        items: Vec::new(),
-        total: 0,
-        page: 1,
-        limit: 10,
-        total_pages: 0,
-        has_next: false,
-        has_previous: false,
-      }
-    }
 }
