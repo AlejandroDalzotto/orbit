@@ -1,17 +1,16 @@
 "use client";
 
 import { useModal } from "@/context/modal-provider";
-import { useWalletAccounts } from "@/hooks/useWalletAccounts";
 import type { Account, AccountType, EditAccount } from "@/models/wallet";
-import { WalletService } from "@/services/wallet";
+import { useWalletStore } from "@/stores/walletStore";
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 export default function ModalEditWallet({ account }: { account: Account }) {
-
   const [isLoading, setIsLoading] = useState(false);
   const { close } = useModal();
-  const { mutate } = useWalletAccounts()
+  const updateAccount = useWalletStore((state) => state.updateAccount);
 
   const handleSubmit = async (e: React.FormEvent) => {
     setIsLoading(true);
@@ -22,53 +21,116 @@ export default function ModalEditWallet({ account }: { account: Account }) {
     const newAccount: EditAccount = {
       name: formData.get("name") as string,
       type: formData.get("type") as AccountType,
-      balance: parseFloat(formData.get("balance") as string)
+      balance: parseFloat(formData.get("balance") as string),
+    };
+
+    const [error, response] = await updateAccount(account.id, newAccount);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(response);
     }
 
-    try {
-      const service = new WalletService();
-      const [error, data] = await service.editAccount(account.id, newAccount);
-      if (error) {
-        toast.error(`Failed to create wallet: ${error.msg}`);
-        setIsLoading(false);
-        return;
-      }
-
-      mutate(data)
-      toast.success(`Account ${data.name} saved successfully.`);
-    } catch (e) {
-      console.error({ e })
-    } finally {
-      setIsLoading(false);
-      close();
-    }
-  }
+    setIsLoading(false);
+    close();
+  };
 
   return (
-    <div className="p-6 rounded shadow-lg bg-neutral-900 w-96">
-      <h2 className="mb-4 text-xl font-bold">Edit account</h2>
+    <div className="p-6 text-sm rounded shadow-lg bg-black border border-neutral-700 w-lg overflow-y-auto">
+      <h2 className="mb-2 text-lg font-semibold">Edit account</h2>
+      <p className="mb-4 text-neutral-500">
+        change the current values for {account.name} account
+      </p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-y-4">
-        <div className="flex flex-col">
-          <label htmlFor="name" className="mb-1 font-semibold">Account Name</label>
-          <input defaultValue={account.name} type="text" id="name" name="name" className="p-2 border border-gray-300 rounded" placeholder="e.g., My Cash Wallet" />
+        <div className="flex-1">
+          <label
+            htmlFor="name"
+            className="block text-neutral-300 font-mono mb-2"
+          >
+            Account Name
+          </label>
+          <input
+            autoComplete="off"
+            defaultValue={account.name}
+            type="text"
+            id="name"
+            name="name"
+            className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
+            placeholder="e.g., My Cash Wallet"
+          />
         </div>
-        <div className="flex flex-col">
-          <label htmlFor="type" className="mb-1 font-semibold">Account Type</label>
-          <select defaultValue={account.type} id="type" name="type" className="p-2 text-white border border-gray-700 rounded bg-neutral-800">
-            <option value="cash">Cash</option>
-            <option value="online wallet">Online Wallet</option>
-            <option value="bank account">Bank Account</option>
-            <option value="credit card">Credit Card</option>
-          </select>
+        <div className="flex-1">
+          <label
+            htmlFor="type"
+            className="block text-neutral-300 font-mono mb-2"
+          >
+            type
+          </label>
+          <div className="relative">
+            <select
+              defaultValue={account.type}
+              id="type"
+              name="type"
+              className="w-full appearance-none bg-black border border-neutral-800 hover:border-neutral-700 focus:border-neutral-700 text-white font-mono font-light px-3 py-2 pr-10 rounded-md cursor-pointer focus:outline-none focus:ring-1 focus:ring-neutral-700 transition-colors"
+            >
+              <option value="" disabled className="bg-black text-neutral-500">
+                select type
+              </option>
+              <option className="bg-black text-white capitalize" value="cash">
+                Cash
+              </option>
+              <option
+                className="bg-black text-white capitalize"
+                value="online wallet"
+              >
+                Online Wallet
+              </option>
+              <option
+                className="bg-black text-white capitalize"
+                value="bank account"
+              >
+                Bank Account
+              </option>
+              <option
+                className="bg-black text-white capitalize"
+                value="credit card"
+              >
+                Credit Card
+              </option>
+            </select>
+
+            {/* Custom chevron icon */}
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <ChevronDown className="h-4 w-4 text-neutral-400" />
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col">
-          <label htmlFor="balance" className="mb-1 font-semibold">Balance</label>
-          <input defaultValue={account.balance} type="number" name="balance" id="balance" className="p-2 border border-gray-300 rounded" placeholder="e.g., 1000.00" />
+        <div className="flex-1">
+          <label
+            htmlFor="balance"
+            className="block text-neutral-300 font-mono mb-2"
+          >
+            Balance
+          </label>
+          <input
+            autoComplete="off"
+            defaultValue={account.balance}
+            type="number"
+            name="balance"
+            id="balance"
+            className="w-full bg-black border border-neutral-800 text-white font-mono px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-neutral-700 focus:border-neutral-700"
+            placeholder="e.g., 1000.00"
+          />
         </div>
-        <button type="submit" disabled={isLoading} className="p-2 text-white bg-blue-500 rounded hover:bg-blue-600 transition-hover disabled:opacity-50">
-          Save Changes
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="p-2 text-white bg-blue-500 rounded hover:bg-blue-600 transition-hover disabled:opacity-50"
+        >
+          {isLoading ? "Saving changes..." : "Save changes"}
         </button>
       </form>
     </div>
-  )
+  );
 }
