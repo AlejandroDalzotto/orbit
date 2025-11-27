@@ -1,12 +1,15 @@
 import ItemsForm from "@/components/form/ItemsForm";
 import {
-  type Item,
+  type ItemRef,
   type Transaction,
-  TransactionCategory
+  TransactionCategory,
 } from "@/models/transaction";
 
-export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?: string, transaction?: Transaction) => {
-
+export const renderSpecificFields = (
+  category: TransactionCategory,
+  fieldPrefix?: string,
+  transaction?: Transaction,
+) => {
   switch (category) {
     case TransactionCategory.Salary: {
       let extraDetails: string | undefined;
@@ -78,7 +81,10 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
       let project: string | undefined;
       let client: string | undefined;
 
-      if (transaction && transaction.category === TransactionCategory.Freelance) {
+      if (
+        transaction &&
+        transaction.category === TransactionCategory.Freelance
+      ) {
         project = transaction.project || undefined;
         client = transaction.client || undefined;
       }
@@ -122,10 +128,13 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
       );
     }
     case TransactionCategory.Supermarket: {
-      let items: Item[] | undefined;
+      let items: ItemRef[] | undefined;
       let storeName: string | undefined;
 
-      if (transaction && transaction.category === TransactionCategory.Supermarket) {
+      if (
+        transaction &&
+        transaction.category === TransactionCategory.Supermarket
+      ) {
         items = transaction.items || undefined;
         storeName = transaction.storeName || undefined;
       }
@@ -155,4 +164,4 @@ export const renderSpecificFields = (category: TransactionCategory, fieldPrefix?
     default:
       return null;
   }
-}
+};

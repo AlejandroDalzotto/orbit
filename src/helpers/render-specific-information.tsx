@@ -2,19 +2,24 @@ import { Transaction, TransactionCategory } from "@/models/transaction";
 import { Building2, ShoppingCart, Shovel } from "lucide-react";
 
 export const renderSpecificInformation = (transaction: Transaction) => {
-
   switch (transaction.category) {
     case TransactionCategory.Salary:
       return (
         <>
-          <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+          <p
+            title={transaction.job || "n/s"}
+            className="flex items-center gap-x-2 text-sm text-neutral-500"
+          >
             <Shovel className="w-3 h-3" />
-            {transaction.job}
+            {transaction.job || "n/s"}
           </p>
           {transaction.employer ? (
-            <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+            <p
+              title={transaction.employer || "n/s"}
+              className="flex items-center gap-x-2 text-sm text-neutral-500"
+            >
               <Building2 className="w-3 h-3" />
-              {transaction.employer}
+              {transaction.employer || "n/s"}
             </p>
           ) : null}
         </>
@@ -24,15 +29,21 @@ export const renderSpecificInformation = (transaction: Transaction) => {
       return (
         <>
           {transaction.client ? (
-            <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+            <p
+              title={transaction.client || "n/s"}
+              className="flex items-center gap-x-2 text-sm text-neutral-500"
+            >
               <span className="w-1 h-1 rounded-full bg-neutral-600" />
-              {transaction.client}
+              {transaction.client || "n/s"}
             </p>
           ) : null}
           {transaction.project ? (
-            <p className="flex items-center gap-x-2 text-sm text-neutral-500">
+            <p
+              title={transaction.project || "n/s"}
+              className="flex items-center gap-x-2 text-sm text-neutral-500"
+            >
               <Building2 className="w-3 h-3" />
-              {transaction.project}
+              {transaction.project || "n/s"}
             </p>
           ) : null}
         </>
@@ -40,17 +51,21 @@ export const renderSpecificInformation = (transaction: Transaction) => {
     case TransactionCategory.Supermarket:
       return (
         <>
-          <p className="flex truncate items-center gap-x-2 text-sm text-neutral-500">
+          <p
+            title={transaction.storeName || "n/s"}
+            className="flex truncate items-center gap-x-2 text-sm text-neutral-500"
+          >
             <ShoppingCart className="w-3 h-3" />
-            {transaction.storeName}
+            {transaction.storeName || "n/s"}
           </p>
           <p className="flex items-center gap-x-2 text-sm text-neutral-500">
             <span className="w-1 h-1 rounded-full bg-neutral-600" />
-            {transaction.items.length} {transaction.items.length === 1 ? "item" : "items"}
+            {transaction.items.length}{" "}
+            {transaction.items.length === 1 ? "item" : "items"}
           </p>
         </>
       );
     default:
       return null;
   }
-}
+};
