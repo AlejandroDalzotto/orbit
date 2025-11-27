@@ -1,40 +1,27 @@
-import { SortOption } from "@/lib/types";
+import {
+  TransactionSortOption,
+  useTransactionStore,
+} from "@/stores/transactionStore";
 import { ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   shouldRender: boolean;
 }
 
-export default function SortOptionsSelectorTransactions({ shouldRender }: Props) {
-  const searchParams = useSearchParams()
-  const pathname = usePathname()
-  const router = useRouter()
+export default function SortOptionsSelectorTransactions({
+  shouldRender,
+}: Props) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const sortBy = useTransactionStore((state) => state.sortBy);
+  const changeSorting = useTransactionStore((state) => state.setSortBy);
 
-  const sortBy = searchParams.get('sortBy') as SortOption || "latest"
-
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-
-  const menuRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
-
-  // build a full url for navigation; if value is empty it removes the param
-  const buildUrl = useCallback(
-    (name: string, value: string) => {
-      const params = new URLSearchParams(searchParams.toString())
-      if (value) params.set(name, value)
-      else params.delete(name)
-
-      const qs = params.toString()
-      return pathname + (qs ? `?${qs}` : "")
-    },
-    [pathname, searchParams]
-  )
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!isMenuOpen) return
+    if (!isMenuOpen) return;
 
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -43,21 +30,22 @@ export default function SortOptionsSelectorTransactions({ shouldRender }: Props)
         buttonRef.current &&
         !buttonRef.current.contains(event.target as Node)
       ) {
-        setIsMenuOpen(false)
+        setIsMenuOpen(false);
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isMenuOpen])
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isMenuOpen]);
 
-  const sortOptions: { value: SortOption, label: string }[] = [
-    { value: "balance" as const, label: "Highest Balance" },
+  const sortOptions: { value: TransactionSortOption; label: string }[] = [
+    { value: "mostExpensive" as const, label: "Highest Balance" },
+    { value: "cheapest" as const, label: "Lowest Balance" },
     { value: "oldest" as const, label: "Oldest" },
     { value: "latest" as const, label: "Most Recent" },
     { value: "income" as const, label: "Income only" },
     { value: "expenses" as const, label: "Expenses only" },
-  ]
+  ];
 
   return (
     <>
@@ -73,7 +61,10 @@ export default function SortOptionsSelectorTransactions({ shouldRender }: Props)
               >
                 {sortOptions.find((option) => option.value === sortBy)?.label}
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                  <motion.div animate={{ rotate: isMenuOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                  <motion.div
+                    animate={{ rotate: isMenuOpen ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     <ChevronDown className="w-3 h-3 text-neutral-400" />
                   </motion.div>
                 </div>
@@ -93,13 +84,14 @@ export default function SortOptionsSelectorTransactions({ shouldRender }: Props)
                         key={option.value}
                         onClick={() => {
                           // update route path
-                          router.push(buildUrl('sortBy', option.value))
-                          setIsMenuOpen(false)
+                          changeSorting(option.value);
+                          setIsMenuOpen(false);
                         }}
-                        className={`w-full text-left px-3 py-2 text-sm font-mono font-light transition-colors first:rounded-t-md last:rounded-b-md ${sortBy === option.value
-                          ? "bg-neutral-900 text-white"
-                          : "text-neutral-400 hover:text-white hover:bg-neutral-900"
-                          }`}
+                        className={`w-full text-left px-3 py-2 text-sm font-mono font-light transition-colors first:rounded-t-md last:rounded-b-md ${
+                          sortBy === option.value
+                            ? "bg-neutral-900 text-white"
+                            : "text-neutral-400 hover:text-white hover:bg-neutral-900"
+                        }`}
                       >
                         {option.label}
                       </button>
@@ -112,5 +104,5 @@ export default function SortOptionsSelectorTransactions({ shouldRender }: Props)
         </AnimatePresence>
       )}
     </>
-  )
+  );
 }

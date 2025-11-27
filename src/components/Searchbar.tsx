@@ -1,72 +1,64 @@
-"use client"
+"use client";
 
-import { Search, X } from "lucide-react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useCallback, useEffect, useState } from "react"
+import { useTransactionStore } from "@/stores/transactionStore";
+import { Search, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const useDebounce = (value: string, delay: number) => {
-  const [debouncedValue, setDebouncedValue] = useState(value)
+  const [debouncedValue, setDebouncedValue] = useState(value);
 
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value)
-    }, delay)
+    const handler = window.setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
 
-    return () => clearTimeout(handler)
-  }, [value, delay])
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
 
-  return debouncedValue
-}
+  return debouncedValue;
+};
 
 interface SearchbarProps {
-  placeholder?: string
-  className?: string
+  placeholder?: string;
+  className?: string;
 }
 
 export default function Searchbar({
   placeholder = "search transactions...",
   className = "",
 }: SearchbarProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+  // context search value and setter
+  const searchQuery = useTransactionStore((state) => state.searchQuery);
+  const setSearchQuery = useTransactionStore((state) => state.setSearchQuery);
 
-  const initial = searchParams?.get("search") ?? ""
-  const [search, setSearch] = useState(initial)
-  const debouncedSearch = useDebounce(search, 300)
+  // local input state (controlled input)
+  const [input, setInput] = useState<string>(searchQuery);
 
-  // build a full url for navigation; if value is empty it removes the param
-  const buildUrl = useCallback(
-    (name: string, value: string) => {
-      const params = new URLSearchParams(searchParams.toString())
-      if (value) params.set(name, value)
-      else params.delete(name)
+  // remember the last value we explicitly sent to context to avoid treating
+  // our own update as an external change
+  const lastSentRef = useRef<string | null>(null);
 
-      const qs = params.toString()
-      return pathname + (qs ? `?${qs}` : "")
-    },
-    [pathname, searchParams]
-  )
+  // debounced value of the local input
+  const debouncedInput = useDebounce(input, 300);
 
-  // keep local input in sync when the URL changes externally
+  // When the debounced input changes, push it to the context only if it
+  // differs from the current context value. Record what we sent so the
+  // following sync effect can ignore that change.
   useEffect(() => {
-    const urlValue = searchParams?.get("search") ?? ""
-    setSearch(urlValue)
-  }, [searchParams])
-
-  // push to router only when debounced value differs from current url param
-  useEffect(() => {
-    const currentParam = searchParams?.get("search") ?? ""
-    if (debouncedSearch !== currentParam) {
-      router.push(buildUrl("search", debouncedSearch))
+    if (debouncedInput !== searchQuery) {
+      setSearchQuery(debouncedInput);
+      lastSentRef.current = debouncedInput;
     }
-  }, [debouncedSearch, buildUrl, router, searchParams])
+    // only depend on debouncedInput and context setter/value
+  }, [debouncedInput, searchQuery, setSearchQuery]);
 
   const clearSearch = () => {
-    setSearch("")
-    // remove param immediately
-    router.push(buildUrl("search", ""))
-  }
+    setInput("");
+    setSearchQuery("");
+    lastSentRef.current = "";
+  };
 
   return (
     <div className={`relative ${className}`}>
@@ -74,19 +66,20 @@ export default function Searchbar({
       <input
         type="text"
         placeholder={placeholder}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
         className="w-full py-1 pl-10 pr-10 font-mono text-white transition-all bg-black border rounded-md outline-none focus:ring-neutral-800 ring-2 ring-transparent border-neutral-800 placeholder:text-neutral-600"
       />
 
-      {search && (
+      {input && (
         <button
           onClick={clearSearch}
+          aria-label="Clear search"
           className="absolute transition-colors transform -translate-y-1/2 right-3 top-1/2 text-neutral-400 hover:text-white"
         >
           <X className="w-4 h-4" />
         </button>
       )}
     </div>
-  )
+  );
 }
