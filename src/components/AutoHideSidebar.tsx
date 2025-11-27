@@ -1,10 +1,19 @@
-"use client"
-import AppLogo from "@/components/AppLogo"
-import { BarChart3, CreditCard, TrendingUp } from "lucide-react"
-import { AnimatePresence, motion } from "motion/react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+"use client";
+import AppLogo from "@/components/AppLogo";
+import {
+  BarChart3,
+  CreditCard,
+  TrendingUp,
+  LayoutList,
+  Settings,
+  HelpCircle,
+  DollarSign,
+  Network,
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 // Navigation items
 const navigationItems = [
@@ -12,76 +21,109 @@ const navigationItems = [
     title: "Wallet",
     url: "/",
     icon: <CreditCard className="w-5 h-5" />,
+    available: true,
   },
   {
     title: "Transactions",
     url: "/transactions",
     icon: <TrendingUp className="w-5 h-5" />,
+    available: true,
   },
   {
     title: "Analytics",
     url: "/analytics",
     icon: <BarChart3 className="w-5 h-5" />,
+    available: true,
   },
-]
+  {
+    title: "List of Items",
+    url: "/items-list",
+    icon: <LayoutList className="w-5 h-5" />,
+    available: true,
+  },
+  {
+    title: "Subscriptions",
+    url: "/subscriptions",
+    icon: <DollarSign className="w-5 h-5" />,
+    available: false,
+  },
+  {
+    title: "Connection",
+    url: "/connection",
+    icon: <Network className="w-5 h-5" />,
+    available: true,
+  },
+  {
+    title: "Settings",
+    url: "/settings",
+    icon: <Settings className="w-5 h-5" />,
+    available: false,
+  },
+  {
+    title: "How to Use",
+    url: "/how-to-use",
+    icon: <HelpCircle className="w-5 h-5" />,
+    available: true,
+  },
+];
 
 // todo: add key event to detect when user press tab to show the sidebar
 export function AutoHideSidebar() {
-  const [isVisible, setIsVisible] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
-  const pathname = usePathname()
-  const sidebarRef = useRef<HTMLDivElement>(null)
-  const timeoutRef = useRef<NodeJS.Timeout>(null)
+  const [isVisible, setIsVisible] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const pathname = usePathname();
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout>(null);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       // Show sidebar when cursor is within 50px of left edge
       if (e.clientX <= 50) {
-        setIsVisible(true)
+        setIsVisible(true);
         if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
+          clearTimeout(timeoutRef.current);
         }
       } else if (e.clientX > 280 && !isHovered) {
         // Hide sidebar when cursor moves away and not hovering over sidebar
         timeoutRef.current = setTimeout(() => {
-          setIsVisible(false)
-        }, 300)
+          setIsVisible(false);
+        }, 300);
       }
-    }
+    };
 
     const handleMouseLeave = () => {
       if (!isHovered) {
         timeoutRef.current = setTimeout(() => {
-          setIsVisible(false)
-        }, 300)
+          setIsVisible(false);
+        }, 300);
       }
-    }
+    };
 
-    document.addEventListener("mousemove", handleMouseMove)
-    document.addEventListener("mouseleave", handleMouseLeave)
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseleave", handleMouseLeave);
 
     return () => {
-      document.removeEventListener("mousemove", handleMouseMove)
-      document.removeEventListener("mouseleave", handleMouseLeave)
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseleave", handleMouseLeave);
       if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
+        clearTimeout(timeoutRef.current);
       }
-    }
-  }, [isHovered])
+    };
+  }, [isHovered]);
 
   const handleSidebarMouseEnter = () => {
-    setIsHovered(true)
+    setIsHovered(true);
     if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
+      clearTimeout(timeoutRef.current);
     }
-  }
+  };
 
   const handleSidebarMouseLeave = () => {
-    setIsHovered(false)
+    setIsHovered(false);
     timeoutRef.current = setTimeout(() => {
-      setIsVisible(false)
-    }, 300)
-  }
+      setIsVisible(false);
+    }, 300);
+  };
 
   return (
     <>
@@ -106,7 +148,9 @@ export function AutoHideSidebar() {
               onMouseLeave={handleSidebarMouseLeave}
             >
               <div className="flex items-center justify-between px-6 py-8 border-b border-neutral-900">
-                <h1 className="text-sm font-light tracking-[0.2em] text-white uppercase">ORBIT</h1>
+                <h1 className="text-sm font-light tracking-[0.2em] text-white uppercase">
+                  ORBIT
+                </h1>
                 <AppLogo />
               </div>
 
@@ -119,15 +163,26 @@ export function AutoHideSidebar() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
                     >
-                      <Link
-                        href={item.url}
-                        className={`flex items-center gap-4 px-0 py-3 text-sm font-light transition-colors border-b border-transparent hover:border-neutral-800 ${pathname === item.url ? "text-white border-neutral-700" : "text-neutral-400 hover:text-white"
+                      {item.available ? (
+                        <Link
+                          href={item.url}
+                          className={`flex items-center gap-4 px-0 py-3 text-sm font-light transition-colors border-b hover:border-neutral-800 ${
+                            pathname === item.url
+                              ? "text-white border-neutral-700"
+                              : "text-neutral-400 hover:text-white border-transparent"
                           }`}
-                      >
-                        <div className="w-1 h-1 bg-current rounded-full" />
-                        {item.icon}
-                        <span className="tracking-wide">{item.title}</span>
-                      </Link>
+                        >
+                          <div className="w-1 h-1 bg-current rounded-full" />
+                          {item.icon}
+                          <span className="tracking-wide">{item.title}</span>
+                        </Link>
+                      ) : (
+                        <div className="flex items-center gap-4 px-0 py-3 text-sm text-neutral-700 font-light transition-colors border-b border-transparent">
+                          <div className="w-1 h-1 bg-neutral-700 rounded-full" />
+                          {item.icon}
+                          <span className="tracking-wide">{item.title}</span>
+                        </div>
+                      )}
                     </motion.div>
                   ))}
                 </nav>
@@ -145,5 +200,5 @@ export function AutoHideSidebar() {
         )}
       </AnimatePresence>
     </>
-  )
+  );
 }
