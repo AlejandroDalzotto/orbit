@@ -25,6 +25,11 @@ tauri = { version = "2.6.1", features = [] }
 tauri-plugin-log = "2"
 tempfile = "3.20.0"
 chrono = "0.4.41"
+rand = "0.9.2"
+sha2 = "0.10.9"
+tower-http = {version = "0.6.7", features = ["cors"] }
+axum = "0.8.4"
+tokio = "1.48.0"
 
 [dependencies.uuid]
 version = "1.18.0"
