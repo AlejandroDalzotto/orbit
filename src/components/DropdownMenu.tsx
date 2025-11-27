@@ -1,35 +1,49 @@
 "use client";
 
-import DropdownMenuButton from "@/components/buttons/DropdownMenuButton";
-import ModalEditWallet from "@/components/modals/ModalEditWallet";
-import { useModal } from "@/context/modal-provider";
-import { useWalletAccounts } from "@/hooks/useWalletAccounts";
-import { useWalletBalance } from "@/hooks/useWalletBalance";
-import { Account } from "@/models/wallet";
-import { WalletService } from "@/services/wallet";
-import { Edit, Eye, MoreHorizontal, Trash2 } from "lucide-react";
+import { useDropdownMenu } from "@/context/dropdown-menu-provider";
+import { MoreHorizontal } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-import ModalAllTransantionsByAccount from "./modals/ModalAllTransactionsByAccount";
+import React, { useEffect, useRef, useState } from "react";
 
-export default function DropdownMenu({
-  account
-}: {
-  account: Account
-}) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+interface DropdownMenuRenderProps {
+  close: () => void;
+}
+
+interface DropdownMenuProps {
+  /**
+   * Children can be either:
+   * - React nodes (JSX elements) — they'll be rendered as-is.
+   * - A render function that receives an object with a `close` function:
+   *     children = ({ close }) => <YourButtons onSomeAction={() => { close(); ... }} />
+   *
+   * The render function form is recommended when menu actions should close the menu
+   * without reaching into the global dropdown context.
+   */
+  children:
+    | React.ReactNode
+    | ((props: DropdownMenuRenderProps) => React.ReactNode);
+  /**
+   * Optional id to identify this dropdown instance. If omitted, an internal unique id is generated.
+   * Using a stable id allows external logic to control/open specific menus via the provider.
+   */
+  id?: string;
+}
+
+export default function DropdownMenu({ children, id }: DropdownMenuProps) {
+  const { toggleMenu, closeMenu, isMenuOpen } = useDropdownMenu();
+  const instanceIdRef = useRef<string>(
+    id ?? `dropdown-${Math.random().toString(36).slice(2, 9)}`,
+  );
+  const instanceId = instanceIdRef.current;
+
   const [renderAbove, setRenderAbove] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const service = new WalletService();
-  const { mutate: mutateAccounts } = useWalletAccounts();
-  const { mutate: mutateBalance } = useWalletBalance();
-  const { open } = useModal();
+  const open = isMenuOpen(instanceId);
 
   useEffect(() => {
-    if (!isMenuOpen) return;
+    if (!open) return;
 
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -38,7 +52,7 @@ export default function DropdownMenu({
         buttonRef.current &&
         !buttonRef.current.contains(event.target as Node)
       ) {
-        setIsMenuOpen(false);
+        closeMenu(instanceId);
       }
     }
 
@@ -60,73 +74,47 @@ export default function DropdownMenu({
       window.removeEventListener("resize", checkPosition);
       window.removeEventListener("scroll", checkPosition, true);
     };
-  }, [isMenuOpen]);
+  }, [open, closeMenu, instanceId]);
+
+  // Helper to render children. If a render function is provided, call it with the `close` API.
+  // Otherwise, render children as-is. This avoids cloning elements or adding casts.
+  const renderChildren = () => {
+    const close = () => closeMenu(instanceId);
+
+    if (typeof children === "function") {
+      return (children as (props: DropdownMenuRenderProps) => React.ReactNode)({
+        close,
+      });
+    }
+
+    // Plain React nodes are returned as-is. Use the render-function form to receive `close`.
+    return children as React.ReactNode;
+  };
 
   return (
     <div className="relative" ref={menuRef}>
       <button
         ref={buttonRef}
-        onClick={() => setIsMenuOpen(!isMenuOpen)}
+        onClick={() => toggleMenu(instanceId)}
         className="px-3 py-2 transition-opacity rounded-md opacity-0 hover:bg-white/10 group-hover:opacity-100 text-neutral-400 hover:text-white"
       >
         <MoreHorizontal className="w-4 h-4" />
       </button>
+
       <AnimatePresence>
-        {isMenuOpen && (
+        {open && (
           <motion.div
             transition={{ duration: 0.1 }}
             initial={{ opacity: 0, y: renderAbove ? -20 : 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: renderAbove ? -20 : 20 }}
-            className={`absolute min-w-48 bg-black *:py-1 *:px-4 *:rounded p-1 border rounded-md border-neutral-800
+            className={`absolute z-20 min-w-48 bg-black *:py-1 *:px-4 *:rounded p-1 border rounded-md border-neutral-800
               ${renderAbove ? "bottom-full mb-2" : "top-full mt-2"} -right-1/2`}
           >
-            <DropdownMenuButton
-              text="Transactions"
-              color="neutral"
-              icon={<Eye className="w-3 h-3" />}
-              onClick={async () => {
-                setIsMenuOpen(false);
-                const [error, transactions] = await service.getAccountHistory(account.id);
-
-                if (error) {
-                  toast.error(error.msg)
-                  return;
-                }
-                open(<ModalAllTransantionsByAccount transactions={transactions} account={account} />)
-              }}
-            />
-            <DropdownMenuButton
-              text="Edit"
-              color="neutral"
-              icon={<Edit className="w-3 h-3" />}
-              onClick={() => {
-                setIsMenuOpen(false);
-                open(<ModalEditWallet account={account} />)
-              }}
-            />
-            <DropdownMenuButton
-              text="Delete"
-              color="red"
-              icon={<Trash2 className="w-3 h-3" />}
-              onClick={() => {
-                if (confirm(`Are you sure you want to delete the account "${account.name}"? This action cannot be undone.`)) {
-                  service.deleteAccount(account.id).then(([error, result]) => {
-                    if (error) {
-                      toast.error(`Error deleting account: ${error.msg}`);
-                    } else {
-                      mutateAccounts(result);
-                      mutateBalance();
-                      toast.success(`Account ${result.name} deleted successfully.\n${result.transactionsCount} transactions will be marked as paid with an unknown method.`);
-                    }
-                  });
-                }
-              }}
-            />
+            {renderChildren()}
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 }
-
