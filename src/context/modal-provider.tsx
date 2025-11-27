@@ -8,14 +8,14 @@ type ModalContextType = {
 };
 
 export const ModalContext = createContext<ModalContextType>({
-  open: () => { },
-  close: () => { },
+  open: () => {},
+  close: () => {},
 });
 
 // Provider component can be implemented later to manage modal state
 export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   const [modalContent, setModalContent] = useState<React.ReactNode>(null);
-  const isOpen = Boolean(modalContent)
+  const isOpen = Boolean(modalContent);
 
   const open = (content: React.ReactNode) => {
     setModalContent(content);
@@ -26,18 +26,16 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-
     const handler = (e: KeyboardEvent) => {
-      if (isOpen && e.key === 'Escape') {
+      if (isOpen && e.key === "Escape") {
         close();
       }
-    }
+    };
 
-    window.addEventListener('keydown', handler)
+    window.addEventListener("keydown", handler);
 
-    return () => window.removeEventListener('keydown', handler)
-  }, [isOpen])
-
+    return () => window.removeEventListener("keydown", handler);
+  }, [isOpen]);
 
   return (
     <ModalContext.Provider value={{ open, close }}>
@@ -48,7 +46,6 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
-            onClick={close}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -56,7 +53,14 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()} // Prevent modal content from closing modal
             >
-              {modalContent}
+              <div className="flex flex-col gap-y-4 items-center">
+                {modalContent}
+                <footer>
+                  <p className="text-neutral-500 text-sm select-none font-mono text-center">
+                    press <kbd>Esc</kbd> to close.
+                  </p>
+                </footer>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -64,7 +68,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
       {children}
     </ModalContext.Provider>
   );
-}
+};
 
 export const useModal = (): ModalContextType => {
   const context = useContext(ModalContext);
@@ -72,4 +76,4 @@ export const useModal = (): ModalContextType => {
     throw new Error("useModal must be used within a ModalProvider");
   }
   return context;
-}
+};
