@@ -1,51 +1,58 @@
 export enum Currency {
-  ARS = 'ARS',
-  USD = 'USD',
+  ARS = "ARS",
+  USD = "USD",
 }
 
 export enum TransactionType {
-  Income = 'income',
-  Expense = 'expense',
+  Income = "income",
+  Expense = "expense",
+  Transfer = "transfer",
 }
 
 export enum TransactionCategory {
-  Basic = 'basic',
-  Salary = 'salary',
-  Supermarket = 'supermarket',
-  Freelance = 'freelance',
+  Basic = "basic",
+  Salary = "salary",
+  Supermarket = "supermarket",
+  Freelance = "freelance",
 }
 
 /**
- * Represents an item purchased in a transaction
+ * Represents a reference to an item for a transaction.
+ * - `itemId` references the canonical item stored in the items DB (null for ad-hoc items).
+ * - `name` is optional and is used when the item is ad-hoc or for display convenience.
+ * - `quantity` and `price` are stored per-transaction so price history is preserved.
  */
-export interface Item {
-  name: string
+export interface ItemRef {
+  /** ID of the canonical item in the items DB, or null for ad-hoc items */
+  itemId: string | null;
+  /** Optional human-friendly name (kept for ad-hoc items or to ease display) */
+  name?: string | null;
   /** The quantity purchased, null if not specified */
-  quantity: number | null
+  quantity: number | null;
   /** The price per unit, null if not specified */
-  price: number | null
+  price: number | null;
 }
 
 /**
  * Base transaction interface containing common properties for all transaction types
  */
 export interface BasicTransaction {
-  id: string
-  amount: number
+  id: string;
+  amount: number;
   /** Transaction date as Unix timestamp */
-  date: number
+  date: number;
   /** When the transaction record was created as Unix timestamp */
-  createdAt: number
+  createdAt: number;
   /** When the transaction record was last updated as Unix timestamp */
-  updatedAt: number
+  updatedAt: number;
   /** Additional notes or description for the transaction */
-  details: string
-  type: TransactionType
+  details: string;
+  type: TransactionType;
   /** Whether this transaction affects the account balance */
-  affectsBalance: boolean
+  affectsBalance: boolean;
   /** ID of the account/wallet this transaction belongs to */
-  accountId: string
-  category: TransactionCategory
+  accountId: string;
+  category: TransactionCategory;
 }
 
 /**
@@ -53,12 +60,12 @@ export interface BasicTransaction {
  */
 export interface SalaryTransaction extends BasicTransaction {
   /** Job title or position */
-  job: string
+  job: string;
   /** Name of the employer or company */
-  employer: string | null
+  employer: string | null;
   /** Additional employment-related details */
-  extraDetails: string | null
-  category: TransactionCategory.Salary
+  extraDetails: string | null;
+  category: TransactionCategory.Salary;
 }
 
 /**
@@ -66,10 +73,10 @@ export interface SalaryTransaction extends BasicTransaction {
  */
 export interface SupermarketTransaction extends BasicTransaction {
   /** Name of the store or supermarket */
-  storeName: string
+  storeName: string;
   /** List of items purchased with quantities and prices */
-  items: Item[]
-  category: TransactionCategory.Supermarket
+  items: ItemRef[];
+  category: TransactionCategory.Supermarket;
 }
 
 /**
@@ -77,10 +84,10 @@ export interface SupermarketTransaction extends BasicTransaction {
  */
 export interface FreelanceTransaction extends BasicTransaction {
   /** Name of the client or company */
-  client: string | null
+  client: string | null;
   /** Project name or description */
-  project: string | null
-  category: TransactionCategory.Freelance
+  project: string | null;
+  category: TransactionCategory.Freelance;
 }
 
 export type Transaction =
@@ -89,22 +96,31 @@ export type Transaction =
   | FreelanceTransaction;
 
 export type FinancialSummany = {
-  netBalance: number
-  totalIncome: number
-  totalExpenses: number
-  transactionsCount: number
-}
+  netBalance: number;
+  totalIncome: number;
+  totalExpenses: number;
+  transactionsCount: number;
+};
 
 export type RequestCreateTransaction =
-  | Omit<SalaryTransaction, 'id' | 'createdAt' | 'updatedAt'>
-  | Omit<SupermarketTransaction, 'id' | 'createdAt' | 'updatedAt'>
-  | Omit<FreelanceTransaction, 'id' | 'createdAt' | 'updatedAt'>;
+  | Omit<SalaryTransaction, "id" | "createdAt" | "updatedAt">
+  | Omit<SupermarketTransaction, "id" | "createdAt" | "updatedAt">
+  | Omit<FreelanceTransaction, "id" | "createdAt" | "updatedAt">;
 
-export type RequestEditTransaction =
-  | Pick<BasicTransaction, 'amount' | 'details' | 'date'>
-  | Pick<SalaryTransaction, 'amount' | 'details' | 'date' | 'employer' | 'extraDetails' | 'job'>
-  | Pick<SupermarketTransaction, 'amount' | 'details' | 'date' | 'storeName' | 'items'>
-  | Pick<FreelanceTransaction, 'amount' | 'details' | 'date' | 'client' | 'project'>;
+export type RequestUpdateTransaction =
+  | Pick<BasicTransaction, "amount" | "details" | "date">
+  | Pick<
+      SalaryTransaction,
+      "amount" | "details" | "date" | "employer" | "extraDetails" | "job"
+    >
+  | Pick<
+      SupermarketTransaction,
+      "amount" | "details" | "date" | "storeName" | "items"
+    >
+  | Pick<
+      FreelanceTransaction,
+      "amount" | "details" | "date" | "client" | "project"
+    >;
 
 /**
  * 1. gastos de casa
@@ -112,5 +128,5 @@ export type RequestEditTransaction =
  * 6. online shopping
  * 7. transportation
  * 8. healthcare
- * 9. 
+ * 9.
  */
