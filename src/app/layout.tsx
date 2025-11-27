@@ -22,9 +22,7 @@ export default function RootLayout({
       >
         <ModalProvider>
           <Grainy />
-          <ClientLayout>
-            {children}
-          </ClientLayout>
+          <ClientLayout>{children}</ClientLayout>
         </ModalProvider>
       </body>
     </html>
