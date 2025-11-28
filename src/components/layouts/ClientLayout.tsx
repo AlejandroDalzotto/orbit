@@ -3,6 +3,7 @@
 import { AutoHideSidebar } from "@/components/AutoHideSidebar";
 import { DropdownMenuProvider } from "@/context/dropdown-menu-provider";
 import { useWalletStore } from "@/stores/walletStore";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { motion } from "motion/react";
 import type React from "react";
 import { useEffect, useState } from "react";
@@ -30,13 +31,44 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+    const handleMinimize = () => {
+      appWindow.minimize();
+    };
+
+    const handleMaximize = () => {
+      appWindow.toggleMaximize();
+    };
+
+    const handleClose = () => {
+      appWindow.close();
+    };
+
+    document
+      .getElementById("titlebar-minimize")
+      ?.addEventListener("click", handleMinimize);
+    document
+      .getElementById("titlebar-maximize")
+      ?.addEventListener("click", handleMaximize);
+    document
+      .getElementById("titlebar-close")
+      ?.addEventListener("click", handleClose);
+
+    return () => {
+      document.removeEventListener("click", handleMinimize);
+      document.removeEventListener("click", handleMaximize);
+      document.removeEventListener("click", handleClose);
+    };
+  }, []);
+
   // load persisted accounts on mount
   useEffect(() => {
     void loadPersistedAccounts();
   }, [loadPersistedAccounts]);
 
   return (
-    <>
+    <div className="h-screen mt-8 relative overflow-y-auto">
       <DropdownMenuProvider>
         <AutoHideSidebar />
 
@@ -92,6 +124,6 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
         <Toaster />
       </DropdownMenuProvider>
-    </>
+    </div>
   );
 }

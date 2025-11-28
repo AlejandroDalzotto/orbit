@@ -3,6 +3,7 @@ import { Exo_2 } from "next/font/google";
 import "./globals.css";
 import { ModalProvider } from "@/context/modal-provider";
 import { ClientLayout } from "@/components/layouts/ClientLayout";
+import Titlebar from "@/components/Titlebar";
 
 const exo2 = Exo_2({
   variable: "--font-exo-2",
@@ -18,10 +19,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${exo2.variable} antialiased font-exo bg-black text-white`}
+        className={`${exo2.variable} antialiased font-exo bg-black text-white overflow-hidden`}
       >
         <ModalProvider>
           <Grainy />
+          <Titlebar />
           <ClientLayout>{children}</ClientLayout>
         </ModalProvider>
       </body>
