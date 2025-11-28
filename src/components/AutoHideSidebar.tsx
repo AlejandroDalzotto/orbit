@@ -6,9 +6,9 @@ import {
   TrendingUp,
   LayoutList,
   Settings,
-  HelpCircle,
   DollarSign,
   Network,
+  BookOpen,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
@@ -60,9 +60,9 @@ const navigationItems = [
     available: false,
   },
   {
-    title: "How to Use",
+    title: "Guide",
     url: "/how-to-use",
-    icon: <HelpCircle className="w-5 h-5" />,
+    icon: <BookOpen className="w-5 h-5" />,
     available: true,
   },
 ];
