@@ -19,7 +19,7 @@ const categories: Record<TransactionType, TransactionCategory[]> = {
     TransactionCategory.Freelance,
     TransactionCategory.Basic,
   ],
-  expense: [TransactionCategory.Supermarket, TransactionCategory.Basic],
+  expense: [TransactionCategory.Shopping, TransactionCategory.Basic],
   transfer: [],
 };
 
@@ -60,7 +60,7 @@ export default function ModalAddTransaction() {
     try {
       // check limits
       if (
-        newTransaction.category === TransactionCategory.Supermarket &&
+        newTransaction.category === TransactionCategory.Shopping &&
         newTransaction.items.length > 0
       ) {
         const warnings = await checkLimits(newTransaction.items);

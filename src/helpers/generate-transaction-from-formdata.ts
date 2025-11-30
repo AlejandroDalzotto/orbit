@@ -5,7 +5,7 @@ import type {
   RequestCreateTransaction,
   RequestUpdateTransaction,
   SalaryTransaction,
-  SupermarketTransaction,
+  ShoppingTransaction,
   TransactionCategory,
 } from "@/models/transaction";
 
@@ -22,8 +22,8 @@ type CategoryFields = {
     SalaryTransaction,
     "employer" | "extraDetails" | "job"
   >;
-  [TransactionCategory.Supermarket]: Pick<
-    SupermarketTransaction,
+  [TransactionCategory.Shopping]: Pick<
+    ShoppingTransaction,
     "items" | "storeName"
   >;
 };
@@ -41,7 +41,7 @@ const CATEGORY_SPECIFIC_FIELDS_BUILDER: {
     extraDetails: getString(fd, "extraDetails"),
     job: getString(fd, "job") as string,
   }),
-  supermarket: (fd) => {
+  shopping: (fd) => {
     const items: ItemRef[] = [];
     let index = 0;
 

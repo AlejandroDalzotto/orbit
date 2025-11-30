@@ -127,13 +127,13 @@ export const renderSpecificFields = (
         </>
       );
     }
-    case TransactionCategory.Supermarket: {
+    case TransactionCategory.Shopping: {
       let items: ItemRef[] | undefined;
       let storeName: string | undefined;
 
       if (
         transaction &&
-        transaction.category === TransactionCategory.Supermarket
+        transaction.category === TransactionCategory.Shopping
       ) {
         items = transaction.items || undefined;
         storeName = transaction.storeName || undefined;

@@ -106,7 +106,7 @@ fn process_expense_transaction(
     }
 
     // Procesar items de supermercado
-    if tx.category == "supermarket" {
+    if tx.category == "shopping" {
         if let Some(items) = &tx.items {
             for item_ref in items {
                 let key = item_ref

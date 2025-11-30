@@ -48,7 +48,7 @@ export const renderSpecificInformation = (transaction: Transaction) => {
           ) : null}
         </>
       );
-    case TransactionCategory.Supermarket:
+    case TransactionCategory.Shopping:
       return (
         <>
           <p

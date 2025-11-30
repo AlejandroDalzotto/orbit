@@ -140,7 +140,7 @@ export default function ModalAllTransantionsByAccount({ account }: CardProps) {
                         {tx.type} • {account.currency} •{" "}
                         {new Date(tx.date).toLocaleDateString()}
                       </p>
-                      {tx.category === TransactionCategory.Supermarket ? (
+                      {tx.category === TransactionCategory.Shopping ? (
                         <p className="mt-1 text-xs text-neutral-500 truncate">
                           • {tx.items.length} items at {tx.storeName}.
                         </p>

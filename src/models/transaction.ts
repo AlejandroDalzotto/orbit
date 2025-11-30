@@ -12,7 +12,7 @@ export enum TransactionType {
 export enum TransactionCategory {
   Basic = "basic",
   Salary = "salary",
-  Supermarket = "supermarket",
+  Shopping = "shopping",
   Freelance = "freelance",
 }
 
@@ -69,14 +69,14 @@ export interface SalaryTransaction extends BasicTransaction {
 }
 
 /**
- * Supermarket or grocery store purchase transaction
+ * Shopping or grocery store purchase transaction
  */
-export interface SupermarketTransaction extends BasicTransaction {
-  /** Name of the store or supermarket */
+export interface ShoppingTransaction extends BasicTransaction {
+  /** Name of the store or shopping */
   storeName: string;
   /** List of items purchased with quantities and prices */
   items: ItemRef[];
-  category: TransactionCategory.Supermarket;
+  category: TransactionCategory.Shopping;
 }
 
 /**
@@ -92,7 +92,7 @@ export interface FreelanceTransaction extends BasicTransaction {
 
 export type Transaction =
   | SalaryTransaction
-  | SupermarketTransaction
+  | ShoppingTransaction
   | FreelanceTransaction;
 
 export type FinancialSummany = {
@@ -104,7 +104,7 @@ export type FinancialSummany = {
 
 export type RequestCreateTransaction =
   | Omit<SalaryTransaction, "id" | "createdAt" | "updatedAt">
-  | Omit<SupermarketTransaction, "id" | "createdAt" | "updatedAt">
+  | Omit<ShoppingTransaction, "id" | "createdAt" | "updatedAt">
   | Omit<FreelanceTransaction, "id" | "createdAt" | "updatedAt">;
 
 export type RequestUpdateTransaction =
@@ -114,7 +114,7 @@ export type RequestUpdateTransaction =
       "amount" | "details" | "date" | "employer" | "extraDetails" | "job"
     >
   | Pick<
-      SupermarketTransaction,
+      ShoppingTransaction,
       "amount" | "details" | "date" | "storeName" | "items"
     >
   | Pick<

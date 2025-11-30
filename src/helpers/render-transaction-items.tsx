@@ -1,6 +1,6 @@
-import { SupermarketTransaction } from "@/models/transaction";
+import { ShoppingTransaction } from "@/models/transaction";
 
-export const renderTransactionItems = (tx: SupermarketTransaction) => {
+export const renderTransactionItems = (tx: ShoppingTransaction) => {
   return (
     <div>
       {/* Headers */}
