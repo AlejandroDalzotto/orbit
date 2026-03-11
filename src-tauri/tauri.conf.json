@@ -1,24 +1,23 @@
 {
-  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "orbit",
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Orbit",
   "version": "../package.json",
-  "identifier": "com.orbit.dev",
+  "identifier": "com.dlz.orbit",
   "build": {
-    "frontendDist": "../out",
-    "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "bun dev",
-    "beforeBuildCommand": "bun build"
+    "beforeDevCommand": "bun run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "bun run build",
+    "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "width": 800,
-        "height": 600,
-        "minWidth": 800,
-        "minHeight": 600,
-        "resizable": true,
-        "fullscreen": false,
-        "decorations": false
+        "title": "Orbit",
+        "width": 1000,
+        "height": 800,
+        "center": true,
+        "minWidth": 1000,
+        "minHeight": 800
       }
     ],
     "security": {
@@ -27,25 +26,11 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
-    "icon": [
-      "icons/32x32.png",
-      "icons/64x64.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico",
-      "icons/icon.png",
-      "icons/Square30x30Logo.png",
-      "icons/Square44x44Logo.ico",
-      "icons/Square71x71Logo.ico",
-      "icons/Square89x89Logo.ico",
-      "icons/Square107x107Logo.ico",
-      "icons/Square142x142Logo.ico",
-      "icons/Square150x150Logo.ico",
-      "icons/Square284x284Logo.ico",
-      "icons/Square310x310Logo.ico",
-      "icons/StoreLogo.png"
-    ]
+    "targets": ["nsis"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "category": "Finance",
+    "copyright": "© Copyright 2026 - Dalzotto Alejandro",
+    "publisher": "Dalzotto Alejandro",
+    "shortDescription": "A finance app where you can track your personal income and expenses."
   }
 }

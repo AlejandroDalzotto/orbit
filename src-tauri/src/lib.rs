@@ -1,58 +1,100 @@
-mod utils;
+use rusqlite::{params, Connection};
+use serde::Serialize;
+use std::sync::Mutex;
+use tauri::Manager;
 
-mod commands;
-mod models;
-mod sync;
-mod traits;
+struct AppState {
+    conn: Mutex<Connection>,
+}
+
+#[derive(Serialize)]
+struct Account {
+    id: i64,
+    name: String,
+    acc_type: String,
+    currency: String,
+    created_at: String,
+}
+
+#[tauri::command]
+fn get_accounts(state: tauri::State<AppState>) -> Vec<Account> {
+    let conn = state.conn.lock().unwrap();
+    let mut stmt = conn
+        .prepare("SELECT id, name, acc_type, currency, created_at FROM accounts")
+        .unwrap();
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(Account {
+                id: row.get::<_, i64>(0).unwrap(),
+                name: row.get::<_, String>(1).unwrap(),
+                acc_type: row.get::<_, String>(2).unwrap(),
+                currency: row.get::<_, String>(3).unwrap(),
+                created_at: row.get::<_, String>(4).unwrap(),
+            })
+        })
+        .unwrap();
+    rows.into_iter().map(|r| r.unwrap()).collect()
+}
+
+#[tauri::command]
+fn add_account(state: tauri::State<AppState>, account: String) {
+    let conn = state.conn.lock().unwrap();
+    conn.execute(
+        "INSERT INTO accounts (name, acc_type) VALUES (?1, ?2)",
+        params![account, "checking"],
+    )
+    .unwrap();
+}
+
+#[tauri::command]
+fn delete_account(state: tauri::State<AppState>, id: i64) {
+    let conn = state.conn.lock().unwrap();
+    conn.execute("DELETE FROM accounts WHERE id = ?1", params![id])
+        .unwrap();
+}
+
+#[tauri::command]
+fn update_account(state: tauri::State<AppState>, id: i64, account: String) {
+    let conn = state.conn.lock().unwrap();
+    conn.execute(
+        "UPDATE accounts SET name = ?1 WHERE id = ?2",
+        params![account, id],
+    )
+    .unwrap();
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            // wallet commands
-            commands::wallet::get_accounts_count,
-            commands::wallet::get_total_balance,
-            commands::wallet::get_accounts,
-            commands::wallet::get_account_history,
-            commands::wallet::add_account,
-            commands::wallet::delete_account,
-            commands::wallet::edit_account,
-            // transactions commands
-            commands::transactions::get_financial_summary,
-            commands::transactions::get_transaction_by_id,
-            commands::transactions::add_transaction,
-            commands::transactions::delete_transaction,
-            commands::transactions::search_transactions,
-            commands::transactions::edit_transaction,
-            commands::transactions::get_transactions_by_account_id,
-            commands::transactions::get_transactions_by_category,
-            // items module commands
-            commands::items::list_items,
-            commands::items::get_item_by_id,
-            commands::items::add_item,
-            commands::items::edit_item,
-            commands::items::delete_item,
-            commands::items::edit_is_spending_leak,
-            commands::items::check_items_limits,
-            // analytics module commands
-            commands::analytics::get_analytics,
-            // sync module commands
-            commands::sync::start_sync_server,
-            commands::sync::get_sync_status,
-            commands::sync::stop_sync_server,
-            commands::sync::get_sync_remaining_time,
-            commands::sync::get_pending_sync_data,
-            commands::sync::approve_sync_data,
-            commands::sync::get_sync_status,
+            get_accounts,
+            add_account,
+            delete_account,
+            update_account
         ])
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
+            // let db_path = app.path().app_data_dir()?.join("app.db");
+
+            let conn = Connection::open_in_memory()?;
+
+            // conn.execute_batch("PRAGMA foreign_keys = ON;")?;
+
+            // MIGRATIONS.to_latest(&mut conn).unwrap();
+
+            let initial_script = std::fs::read_to_string("schema.sql").unwrap();
+            conn.execute_batch(&initial_script).unwrap();
+
+            conn.execute(
+                "INSERT INTO accounts (name, acc_type) VALUES (?1, ?2)",
+                params!["Example account 1", "checking"],
+            )
+            .unwrap();
+
+            app.manage(AppState {
+                conn: Mutex::new(conn),
+            });
+
             Ok(())
         })
         .run(tauri::generate_context!())
