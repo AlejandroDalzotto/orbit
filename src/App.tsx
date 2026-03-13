@@ -2,6 +2,7 @@ import "./App.css";
 import React, { useState } from "react";
 import { Settings, Wallet, List, Users, Box, BarChart } from "lucide-react";
 import WalletView from "./views/wallet-view";
+import { ViewLayout } from "./layouts/view-layout";
 
 function App() {
   const [currentView, setCurrentView] = useState<"billetera" | "movimientos" | "grupos" | "items" | "reportes">("billetera");
@@ -19,7 +20,7 @@ function App() {
   ];
 
   return (
-    <div className="min-h-200 min-w-250 flex flex-col bg-gray-50">
+    <div className="min-h-200 min-w-250 w-screen h-screen bg-neutral-100 grid grid-rows-[auto_1fr]">
       {/* Top navbar */}
       <nav className="flex items-center justify-between px-6 py-3 bg-white shadow-sm">
         {/* Left: Title */}
@@ -64,35 +65,35 @@ function App() {
       </nav>
 
       {/* Main content area */}
-      <main className="flex-1 p-6">
+      <main className="p-6 relative">
         {currentView === "billetera" && <WalletView />}
 
         {currentView === "movimientos" && (
-          <div className="h-full w-full rounded-md border border-dashed border-gray-200 bg-white p-6">
+          <ViewLayout>
             <h2 className="text-xl font-semibold mb-2">Movimientos</h2>
             <p className="text-sm text-gray-600">Aquí van los movimientos.</p>
-          </div>
+          </ViewLayout>
         )}
 
         {currentView === "grupos" && (
-          <div className="h-full w-full rounded-md border border-dashed border-gray-200 bg-white p-6">
+          <ViewLayout>
             <h2 className="text-xl font-semibold mb-2">Grupos</h2>
             <p className="text-sm text-gray-600">Aquí va la vista de grupos.</p>
-          </div>
+          </ViewLayout>
         )}
 
         {currentView === "items" && (
-          <div className="h-full w-full rounded-md border border-dashed border-gray-200 bg-white p-6">
+          <ViewLayout>
             <h2 className="text-xl font-semibold mb-2">Items</h2>
             <p className="text-sm text-gray-600">Aquí va la vista de items.</p>
-          </div>
+          </ViewLayout>
         )}
 
         {currentView === "reportes" && (
-          <div className="h-full w-full rounded-md border border-dashed border-gray-200 bg-white p-6">
+          <ViewLayout>
             <h2 className="text-xl font-semibold mb-2">Reportes</h2>
             <p className="text-sm text-gray-600">Aquí van los reportes.</p>
-          </div>
+          </ViewLayout>
         )}
       </main>
     </div>
