@@ -37,6 +37,23 @@ fn get_accounts(state: tauri::State<AppState>) -> Vec<Account> {
 }
 
 #[tauri::command]
+fn get_account_balance_by_id(state: tauri::State<AppState>, id: i64) -> f64 {
+    let conn = state.conn.lock().unwrap();
+    let mut stmt = conn
+        .prepare("SELECT current_balance_ars FROM v_account_balance WHERE account_id = ?1")
+        .unwrap();
+    let rows = stmt
+        .query_map(params![id], |row| Ok(row.get::<_, f64>(0).unwrap()))
+        .unwrap();
+    rows.into_iter()
+        .map(|r| r.unwrap())
+        .collect::<Vec<f64>>()
+        .first()
+        .copied()
+        .unwrap_or(0.0)
+}
+
+#[tauri::command]
 fn add_account(state: tauri::State<AppState>, account: String) {
     let conn = state.conn.lock().unwrap();
     conn.execute(
@@ -69,6 +86,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             get_accounts,
+            get_account_balance_by_id,
             add_account,
             delete_account,
             update_account
