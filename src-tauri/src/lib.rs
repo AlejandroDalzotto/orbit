@@ -100,6 +100,16 @@ fn add_account(state: tauri::State<AppState>, account: AddAccount) {
 #[tauri::command]
 fn delete_account(state: tauri::State<AppState>, id: i64) {
     let conn = state.conn.lock().unwrap();
+
+    // First we delete all snapshots for this account
+    // WARNING: if you try to delete the account first and skip this step, you'll get a foreign key constraint violation, therefore the app will crash
+    conn.execute(
+        "DELETE FROM balance_snapshots WHERE account_id = ?1",
+        params![id],
+    )
+    .unwrap();
+
+    // Then we delete the account itself
     conn.execute("DELETE FROM accounts WHERE id = ?1", params![id])
         .unwrap();
 }
