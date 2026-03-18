@@ -226,7 +226,7 @@ JOIN movements m ON p.mov_id   = m.id
 LEFT JOIN stores s ON p.store_id = s.id;
 
 -- Balance actual por cuenta
--- Uso: filtrar por account_id en la aplicación
+-- Uso: filtrar por account_id en la aplicación.
 CREATE VIEW v_account_balance AS
 SELECT
     a.id   AS account_id,
@@ -239,6 +239,35 @@ SELECT
             ELSE 0
         END
     ), 0) AS current_balance_ars
+FROM accounts a
+JOIN balance_snapshots bs
+    ON  bs.account_id    = a.id
+    AND bs.snapshot_date = (
+        SELECT MAX(snapshot_date)
+        FROM balance_snapshots
+        WHERE account_id = a.id
+    )
+LEFT JOIN movements m
+    ON  m.account_id = a.id
+    AND m.date > bs.snapshot_date
+GROUP BY a.id, bs.balance;
+
+-- Obtener todas las cuentas con su respectivo balance calculado (respetando valor original de cada moneda).
+-- Uso: wallet view, donde se quiere mostrar el balance en la moneda de la cuenta.
+CREATE VIEW v_account_balance_original AS
+SELECT
+    a.id   AS account_id,
+    a.name AS account_name,
+    a.acc_type,
+    a.currency,
+    a.created_at,
+    bs.balance + COALESCE(SUM(
+        CASE
+            WHEN m.mov_type = 'income'   THEN  m.original_amount
+            WHEN m.mov_type = 'expense'  THEN -m.original_amount
+            ELSE 0
+        END
+    ), 0) AS current_balance_original
 FROM accounts a
 JOIN balance_snapshots bs
     ON  bs.account_id    = a.id

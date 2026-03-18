@@ -1,5 +1,5 @@
-use rusqlite::{params, Connection};
-use serde::Serialize;
+use rusqlite::{params, Connection, ToSql};
+use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::Manager;
 
@@ -7,20 +7,38 @@ struct AppState {
     conn: Mutex<Connection>,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
+enum CurrentupportedCurrencies {
+    USD,
+    ARS,
+}
+
+impl ToSql for CurrentupportedCurrencies {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        let s: &str = match self {
+            CurrentupportedCurrencies::USD => "USD",
+            CurrentupportedCurrencies::ARS => "ARS",
+        };
+        Ok(rusqlite::types::ToSqlOutput::from(s))
+    }
+}
+
+// TODO: this struct should also include the notes field.
+#[derive(Serialize, Debug)]
 struct Account {
     id: i64,
     name: String,
     acc_type: String,
     currency: String,
     created_at: String,
+    balance: f64,
 }
 
 #[tauri::command]
 fn get_accounts(state: tauri::State<AppState>) -> Vec<Account> {
     let conn = state.conn.lock().unwrap();
     let mut stmt = conn
-        .prepare("SELECT id, name, acc_type, currency, created_at FROM accounts")
+        .prepare("SELECT account_id, account_name, acc_type, currency, created_at, current_balance_original FROM v_account_balance_original")
         .unwrap();
     let rows = stmt
         .query_map([], |row| {
@@ -30,35 +48,51 @@ fn get_accounts(state: tauri::State<AppState>) -> Vec<Account> {
                 acc_type: row.get::<_, String>(2).unwrap(),
                 currency: row.get::<_, String>(3).unwrap(),
                 created_at: row.get::<_, String>(4).unwrap(),
+                balance: row.get::<_, f64>(5).unwrap(),
             })
         })
         .unwrap();
-    rows.into_iter().map(|r| r.unwrap()).collect()
-}
 
-#[tauri::command]
-fn get_account_balance_by_id(state: tauri::State<AppState>, id: i64) -> f64 {
-    let conn = state.conn.lock().unwrap();
-    let mut stmt = conn
-        .prepare("SELECT current_balance_ars FROM v_account_balance WHERE account_id = ?1")
-        .unwrap();
-    let rows = stmt
-        .query_map(params![id], |row| Ok(row.get::<_, f64>(0).unwrap()))
-        .unwrap();
-    rows.into_iter()
+    let accounts = rows
+        .into_iter()
         .map(|r| r.unwrap())
-        .collect::<Vec<f64>>()
-        .first()
-        .copied()
-        .unwrap_or(0.0)
+        .collect::<Vec<Account>>();
+
+    #[cfg(dev)]
+    {
+        println!("retriving accounts: {:?}", accounts);
+    }
+
+    accounts
 }
 
+#[derive(Debug, Deserialize)]
+struct AddAccount {
+    name: String,
+    acc_type: String,
+    currency: CurrentupportedCurrencies,
+    initial_balance: f64,
+    notes: Option<String>,
+}
+
+// TODO: this command should return the new account created.
 #[tauri::command]
-fn add_account(state: tauri::State<AppState>, account: String) {
+fn add_account(state: tauri::State<AppState>, account: AddAccount) {
     let conn = state.conn.lock().unwrap();
+    // First we add the account to the accounts table
     conn.execute(
-        "INSERT INTO accounts (name, acc_type) VALUES (?1, ?2)",
-        params![account, "checking"],
+        "INSERT INTO accounts (name, acc_type, currency) VALUES (?1, ?2, ?3)",
+        params![account.name, account.acc_type, account.currency],
+    )
+    .unwrap();
+
+    // Then we need to insert a record into the snapshots table in order to track the initial balance.
+    let account_id = conn.last_insert_rowid();
+    let initial_balance_in_cents = (account.initial_balance * 100.0) as i64;
+    let now = chrono::Local::now().format("%d-%m-%Y").to_string();
+    conn.execute(
+        "INSERT INTO balance_snapshots (account_id, balance, snapshot_date, note) VALUES (?1, ?2, ?3, ?4)",
+        params![account_id, initial_balance_in_cents, now, account.notes],
     )
     .unwrap();
 }
@@ -86,7 +120,6 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             get_accounts,
-            get_account_balance_by_id,
             add_account,
             delete_account,
             update_account
@@ -101,13 +134,19 @@ pub fn run() {
             // MIGRATIONS.to_latest(&mut conn).unwrap();
 
             let initial_script = std::fs::read_to_string("schema.sql").unwrap();
+
             conn.execute_batch(&initial_script).unwrap();
 
             conn.execute(
                 "INSERT INTO accounts (name, acc_type) VALUES (?1, ?2)",
                 params!["Example account 1", "checking"],
-            )
-            .unwrap();
+            ).unwrap();
+
+            let account_id = conn.last_insert_rowid();
+            conn.execute(
+                "INSERT INTO balance_snapshots (account_id, balance, snapshot_date) VALUES (?1, ?2, ?3)",
+                params![account_id, 0, "2025-01-01"],
+            ).unwrap();
 
             app.manage(AppState {
                 conn: Mutex::new(conn),

@@ -6,6 +6,7 @@ export type Account = {
   acc_type: string;
   currency: string;
   created_at: string;
+  balance: number; // en centavos
 };
 
 type UpdateAccount = {
@@ -14,19 +15,18 @@ type UpdateAccount = {
   acc_type?: string;
 };
 
-type AddAccount = {
+export type AddAccount = {
   name: string;
   acc_type: string;
+  currency: string;
+  initial_balance: number;
+  notes?: string;
 };
 
 export async function getAccounts(): Promise<Account[]> {
   const accounts = await invoke<Account[]>("get_accounts");
+  console.log({ accounts });
   return accounts;
-}
-
-export async function getAccountBalanceById(id: number): Promise<number> {
-  const balance = await invoke<number>("get_account_balance_by_id", { id });
-  return balance;
 }
 
 export async function addAccount(newValues: AddAccount): Promise<Account> {
