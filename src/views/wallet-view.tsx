@@ -1,4 +1,4 @@
-import { FormEvent, SubmitEventHandler, useEffect, useMemo, useState } from "react";
+import { SubmitEventHandler, useEffect, useMemo, useState } from "react";
 import { Account, AddAccount, addAccount, deleteAccount, getAccounts } from "../commands/accounts";
 import { ViewLayout } from "../layouts/view-layout";
 import { Pencil, Search, Trash2, Wallet } from "lucide-react";
