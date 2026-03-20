@@ -21,3 +21,16 @@
         opacity: 0;
     }
 }
+
+.modal_footer_text {
+    filter: blur(0px);
+    opacity: 1;
+    transition:
+        filter 0.25s ease,
+        opacity 0.25s ease;
+
+    @starting-style {
+        filter: blur(4px);
+        opacity: 0;
+    }
+}

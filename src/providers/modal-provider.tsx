@@ -34,8 +34,8 @@ export function ModalProvider() {
             </div>
             {modal}
           </div>
-          <footer className="mt-4">
-            <p className="text-muted-foreground text-sm select-none font-mono text-center">
+          <footer className={styles.modal_footer_text + " mt-4"}>
+            <p className="text-sm select-none font-mono text-center">
               podes apretar <kbd className="px-2 py-1 bg-muted rounded text-xs">Esc</kbd> para cerrar el modal
             </p>
           </footer>
