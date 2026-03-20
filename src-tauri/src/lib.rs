@@ -23,7 +23,6 @@ impl ToSql for CurrentupportedCurrencies {
     }
 }
 
-// TODO: this struct should also include the notes field.
 #[derive(Serialize, Debug)]
 struct Account {
     id: i64,
@@ -31,6 +30,7 @@ struct Account {
     acc_type: String,
     currency: String,
     created_at: String,
+    notes: Option<String>,
     balance: f64,
 }
 
@@ -38,7 +38,7 @@ struct Account {
 fn get_accounts(state: tauri::State<AppState>) -> Vec<Account> {
     let conn = state.conn.lock().unwrap();
     let mut stmt = conn
-        .prepare("SELECT account_id, account_name, acc_type, currency, created_at, current_balance_original FROM v_account_balance_original")
+        .prepare("SELECT account_id, account_name, acc_type, currency, created_at, notes, current_balance_original FROM v_account_balance_original")
         .unwrap();
     let rows = stmt
         .query_map([], |row| {
@@ -48,7 +48,8 @@ fn get_accounts(state: tauri::State<AppState>) -> Vec<Account> {
                 acc_type: row.get::<_, String>(2).unwrap(),
                 currency: row.get::<_, String>(3).unwrap(),
                 created_at: row.get::<_, String>(4).unwrap(),
-                balance: row.get::<_, f64>(5).unwrap(),
+                notes: row.get::<_, Option<String>>(5).unwrap(),
+                balance: row.get::<_, f64>(6).unwrap(),
             })
         })
         .unwrap();
@@ -60,7 +61,7 @@ fn get_accounts(state: tauri::State<AppState>) -> Vec<Account> {
 
     #[cfg(dev)]
     {
-        println!("retriving accounts: {:?}", accounts);
+        println!("retriving {} accounts", accounts.len());
     }
 
     accounts
@@ -81,8 +82,13 @@ fn add_account(state: tauri::State<AppState>, account: AddAccount) {
     let conn = state.conn.lock().unwrap();
     // First we add the account to the accounts table
     conn.execute(
-        "INSERT INTO accounts (name, acc_type, currency) VALUES (?1, ?2, ?3)",
-        params![account.name, account.acc_type, account.currency],
+        "INSERT INTO accounts (name, acc_type, currency, notes) VALUES (?1, ?2, ?3, ?4)",
+        params![
+            account.name,
+            account.acc_type,
+            account.currency,
+            account.notes
+        ],
     )
     .unwrap();
 
@@ -91,8 +97,8 @@ fn add_account(state: tauri::State<AppState>, account: AddAccount) {
     let initial_balance_in_cents = (account.initial_balance * 100.0) as i64;
     let now = chrono::Local::now().format("%d-%m-%Y").to_string();
     conn.execute(
-        "INSERT INTO balance_snapshots (account_id, balance, snapshot_date, note) VALUES (?1, ?2, ?3, ?4)",
-        params![account_id, initial_balance_in_cents, now, account.notes],
+        "INSERT INTO balance_snapshots (account_id, balance, snapshot_date) VALUES (?1, ?2, ?3)",
+        params![account_id, initial_balance_in_cents, now],
     )
     .unwrap();
 }
@@ -114,12 +120,19 @@ fn delete_account(state: tauri::State<AppState>, id: i64) {
         .unwrap();
 }
 
+#[derive(Debug, Deserialize)]
+struct UpdateAccount {
+    name: String,
+    acc_type: String,
+    notes: Option<String>,
+}
+
 #[tauri::command]
-fn update_account(state: tauri::State<AppState>, id: i64, account: String) {
+fn update_account(state: tauri::State<AppState>, id: i64, account: UpdateAccount) {
     let conn = state.conn.lock().unwrap();
     conn.execute(
-        "UPDATE accounts SET name = ?1 WHERE id = ?2",
-        params![account, id],
+        "UPDATE accounts SET name = ?1, acc_type = ?2, notes = ?3 WHERE id = ?4",
+        params![account.name, account.acc_type, account.notes, id],
     )
     .unwrap();
 }
@@ -149,7 +162,7 @@ pub fn run() {
 
             conn.execute(
                 "INSERT INTO accounts (name, acc_type) VALUES (?1, ?2)",
-                params!["Example account 1", "checking"],
+                params!["Cuenta inicial de ejemplo", "Banco"],
             ).unwrap();
 
             let account_id = conn.last_insert_rowid();

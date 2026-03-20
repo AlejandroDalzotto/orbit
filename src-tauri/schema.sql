@@ -17,6 +17,7 @@ CREATE TABLE accounts (
     name       TEXT    NOT NULL,
     acc_type   TEXT    NOT NULL,
     currency   TEXT    NOT NULL DEFAULT 'ARS',
+    notes      TEXT,
     created_at TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -31,7 +32,6 @@ CREATE TABLE balance_snapshots (
     account_id    INTEGER NOT NULL,
     balance       INTEGER NOT NULL, -- en centavos
     snapshot_date TEXT    NOT NULL,
-    note          TEXT,
     created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY (account_id) REFERENCES accounts (id)
 );
@@ -261,6 +261,7 @@ SELECT
     a.acc_type,
     a.currency,
     a.created_at,
+    a.notes,
     bs.balance + COALESCE(SUM(
         CASE
             WHEN m.mov_type = 'income'   THEN  m.original_amount

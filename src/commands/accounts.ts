@@ -7,12 +7,13 @@ export type Account = {
   currency: string;
   created_at: string;
   balance: number; // en centavos
+  notes?: string;
 };
 
-type UpdateAccount = {
-  id: number;
-  name?: string;
-  acc_type?: string;
+export type UpdateAccount = {
+  name: string;
+  acc_type: string;
+  notes?: string;
 };
 
 export type AddAccount = {
@@ -39,7 +40,7 @@ export async function deleteAccount(id: number): Promise<boolean> {
   return true;
 }
 
-export async function updateAccount(acc: UpdateAccount): Promise<boolean> {
-  await invoke("update_account", { id: acc.id, account: acc });
+export async function updateAccount(id: number, acc: UpdateAccount): Promise<boolean> {
+  await invoke("update_account", { id, account: acc });
   return true;
 }

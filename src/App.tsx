@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Settings, Wallet, List, Box, Boxes, ChartLine } from "lucide-react";
 import WalletView from "./views/wallet-view";
 import { ViewLayout } from "./layouts/view-layout";
+import { ModalProvider } from "./providers/modal-provider";
 
 function App() {
   const [currentView, setCurrentView] = useState<"billetera" | "movimientos" | "grupos" | "items" | "reportes">("billetera");
@@ -21,6 +22,8 @@ function App() {
 
   return (
     <div className="min-h-200 min-w-250 w-screen h-screen bg-neutral-100 grid grid-rows-[auto_1fr]">
+      <ModalProvider />
+
       {/* Top navbar */}
       <nav className="flex items-center justify-between px-6 py-3 bg-white shadow-sm">
         {/* Left: Title */}
