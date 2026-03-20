@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Account, deleteAccount, getAccounts } from "../commands/accounts";
+import { Account, getAccounts } from "../commands/accounts";
 import { ViewLayout } from "../layouts/view-layout";
 import { Pencil, Search, Trash2, Wallet } from "lucide-react";
 import { formatCurrency } from "../utils/format-currency";
 import { useModalStore } from "../stores/modal-store";
 import { AddAccountModal } from "../components/modals/add-account-modal";
 import { EditAccountModal } from "../components/modals/edit-account-modal";
+import { DeleteAccountModal } from "../components/modals/delete-account-modal";
 
-const AccountItem = ({ account, onDelete }: { account: Account; onDelete: (account: Account) => void }) => {
+const AccountItem = ({ account }: { account: Account }) => {
   const open = useModalStore((state) => state.open);
   const created = new Date(account.created_at).toLocaleDateString("es-AR");
   const currency = account.currency ?? "ARS";
@@ -36,7 +37,7 @@ const AccountItem = ({ account, onDelete }: { account: Account; onDelete: (accou
             <Pencil className="w-4 h-4" />
           </button>
           <button
-            onClick={() => onDelete(account)}
+            onClick={() => open(<DeleteAccountModal account={account} />)}
             className="p-1.5 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
             title="Eliminar"
           >
@@ -73,12 +74,6 @@ export default function WalletView() {
       {} as Record<string, number>,
     );
   }, [accounts]);
-
-  const handleDeleteAccount = async (account: Account) => {
-    await deleteAccount(account.id);
-    const newAccounts = await getAccounts();
-    setAccounts(newAccounts);
-  };
 
   return (
     <ViewLayout>
@@ -145,7 +140,7 @@ export default function WalletView() {
           {filteredAccounts.length === 0 ? (
             <div className="bg-white shadow rounded p-4 text-sm text-neutral-500">No se encontraron cuentas que coincidan.</div>
           ) : (
-            filteredAccounts.map((account) => <AccountItem key={account.id} account={account} onDelete={handleDeleteAccount} />)
+            filteredAccounts.map((account) => <AccountItem key={account.id} account={account} />)
           )}
         </div>
       </div>
