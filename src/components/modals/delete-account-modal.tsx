@@ -1,16 +1,17 @@
-import { deleteAccount } from "../../commands/accounts";
 import type { Account } from "../../definitions/accounts";
+import { useAccountActions } from "../../stores/accounts-store";
 import { useModalStore } from "../../stores/modal-store";
-
-const handler = async (account: Account) => {
-  await deleteAccount(account.id);
-};
 
 /**
  * Este es un modal de confirmación que recibe una cuenta como prop y pregunta al usuario si está seguro de eliminarla.
  */
 export function DeleteAccountModal({ account }: { account: Account }) {
   const close = useModalStore((state) => state.close);
+  const { deleteAccount } = useAccountActions();
+
+  const handler = async (account: Account) => {
+    await deleteAccount(account.id);
+  };
 
   return (
     <>

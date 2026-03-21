@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { getAccounts } from "../commands/accounts";
 import { ViewLayout } from "../layouts/view-layout";
 import { Eye, Pencil, Search, Trash2, Wallet } from "lucide-react";
 import { formatCurrency } from "../utils/format-currency";
@@ -9,6 +8,7 @@ import { EditAccountModal } from "../components/modals/edit-account-modal";
 import { DeleteAccountModal } from "../components/modals/delete-account-modal";
 import AccountDetailsModal from "../components/modals/account-details-modal";
 import { Account } from "../definitions/accounts";
+import { useAccountActions, useAccounts } from "../stores/accounts-store";
 
 const AccountItem = ({ account }: { account: Account }) => {
   const open = useModalStore((state) => state.open);
@@ -56,12 +56,13 @@ const AccountItem = ({ account }: { account: Account }) => {
 };
 
 export default function WalletView() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const accounts = useAccounts();
+  const { initialize } = useAccountActions();
   const [query, setQuery] = useState<string>("");
   const open = useModalStore((state) => state.open);
 
   useEffect(() => {
-    getAccounts().then(setAccounts);
+    initialize();
   }, []);
 
   const filteredAccounts = useMemo(() => {

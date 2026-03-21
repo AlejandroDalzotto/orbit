@@ -1,11 +1,12 @@
 import { SubmitEventHandler } from "react";
-import { addAccount } from "../../commands/accounts";
 import { useModalStore } from "../../stores/modal-store";
 import { AVAILABLE_ACCOUNT_TYPES } from "../../definitions/consts";
 import type { AccountType, AddAccount } from "../../definitions/accounts";
+import { useAccountActions } from "../../stores/accounts-store";
 
 export function AddAccountModal() {
   const close = useModalStore((state) => state.close);
+  const { addAccount } = useAccountActions();
 
   const handler: SubmitEventHandler = async (e) => {
     e.preventDefault();

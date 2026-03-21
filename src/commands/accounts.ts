@@ -17,7 +17,7 @@ export async function deleteAccount(id: number): Promise<boolean> {
   return true;
 }
 
-export async function updateAccount(id: number, acc: UpdateAccount): Promise<boolean> {
-  await invoke("update_account", { id, account: acc });
-  return true;
+export async function updateAccount(id: number, acc: UpdateAccount): Promise<Account> {
+  const account = await invoke<Account>("update_account", { id, account: acc });
+  return account;
 }

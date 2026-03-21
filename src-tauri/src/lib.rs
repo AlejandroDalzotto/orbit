@@ -76,11 +76,10 @@ struct AddAccount {
     notes: Option<String>,
 }
 
-// TODO: this command should return the new account created.
 #[tauri::command]
-fn add_account(state: tauri::State<AppState>, account: AddAccount) {
+fn add_account(state: tauri::State<AppState>, account: AddAccount) -> Account {
     let conn = state.conn.lock().unwrap();
-    // First we add the account to the accounts table
+
     conn.execute(
         "INSERT INTO accounts (name, acc_type, currency, notes) VALUES (?1, ?2, ?3, ?4)",
         params![
@@ -92,15 +91,37 @@ fn add_account(state: tauri::State<AppState>, account: AddAccount) {
     )
     .unwrap();
 
-    // Then we need to insert a record into the snapshots table in order to track the initial balance.
     let account_id = conn.last_insert_rowid();
     let initial_balance_in_cents = (account.initial_balance * 100.0) as i64;
     let now = chrono::Local::now().format("%d-%m-%Y").to_string();
+
     conn.execute(
         "INSERT INTO balance_snapshots (account_id, balance, snapshot_date) VALUES (?1, ?2, ?3)",
         params![account_id, initial_balance_in_cents, now],
     )
     .unwrap();
+
+    conn.query_row(
+        "SELECT a.id, a.name, a.acc_type, a.currency, a.created_at, a.notes,
+                COALESCE(SUM(bs.balance), 0) as balance
+         FROM accounts a
+         LEFT JOIN balance_snapshots bs ON bs.account_id = a.id
+         WHERE a.id = ?1
+         GROUP BY a.id",
+        params![account_id],
+        |row| {
+            Ok(Account {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                acc_type: row.get(2)?,
+                currency: row.get(3)?,
+                created_at: row.get(4)?,
+                notes: row.get(5)?,
+                balance: row.get(6)?,
+            })
+        },
+    )
+    .unwrap()
 }
 
 #[tauri::command]
@@ -128,15 +149,37 @@ struct UpdateAccount {
 }
 
 #[tauri::command]
-fn update_account(state: tauri::State<AppState>, id: i64, account: UpdateAccount) {
+fn update_account(state: tauri::State<AppState>, id: i64, account: UpdateAccount) -> Account {
     let conn = state.conn.lock().unwrap();
+
     conn.execute(
         "UPDATE accounts SET name = ?1, acc_type = ?2, notes = ?3 WHERE id = ?4",
         params![account.name, account.acc_type, account.notes, id],
     )
     .unwrap();
-}
 
+    conn.query_row(
+        "SELECT a.id, a.name, a.acc_type, a.currency, a.created_at, a.notes,
+                COALESCE(SUM(bs.balance), 0) as balance
+         FROM accounts a
+         LEFT JOIN balance_snapshots bs ON bs.account_id = a.id
+         WHERE a.id = ?1
+         GROUP BY a.id",
+        params![id],
+        |row| {
+            Ok(Account {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                acc_type: row.get(2)?,
+                currency: row.get(3)?,
+                created_at: row.get(4)?,
+                notes: row.get(5)?,
+                balance: row.get(6)?,
+            })
+        },
+    )
+    .unwrap()
+}
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
