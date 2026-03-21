@@ -1,28 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-
-export type Account = {
-  id: number;
-  name: string;
-  acc_type: string;
-  currency: string;
-  created_at: string;
-  balance: number; // en centavos
-  notes?: string;
-};
-
-export type UpdateAccount = {
-  name: string;
-  acc_type: string;
-  notes?: string;
-};
-
-export type AddAccount = {
-  name: string;
-  acc_type: string;
-  currency: string;
-  initial_balance: number;
-  notes?: string;
-};
+import { Account, AddAccount, UpdateAccount } from "../definitions/accounts";
 
 export async function getAccounts(): Promise<Account[]> {
   const accounts = await invoke<Account[]>("get_accounts");

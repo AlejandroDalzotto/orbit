@@ -1,6 +1,6 @@
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight } from "lucide-react";
 import { formatCurrency } from "../../utils/format-currency";
-import { Account } from "../../commands/accounts";
+import type { Account } from "../../definitions/accounts";
 
 type MovType = "income" | "expense" | "transfer";
 type RateType = "blue" | "oficial" | "mep" | "ccl" | "cripto" | null;

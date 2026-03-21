@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Account, getAccounts } from "../commands/accounts";
+import { getAccounts } from "../commands/accounts";
 import { ViewLayout } from "../layouts/view-layout";
 import { Eye, Pencil, Search, Trash2, Wallet } from "lucide-react";
 import { formatCurrency } from "../utils/format-currency";
@@ -8,6 +8,7 @@ import { AddAccountModal } from "../components/modals/add-account-modal";
 import { EditAccountModal } from "../components/modals/edit-account-modal";
 import { DeleteAccountModal } from "../components/modals/delete-account-modal";
 import AccountDetailsModal from "../components/modals/account-details-modal";
+import { Account } from "../definitions/accounts";
 
 const AccountItem = ({ account }: { account: Account }) => {
   const open = useModalStore((state) => state.open);

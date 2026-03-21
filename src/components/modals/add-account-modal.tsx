@@ -1,6 +1,8 @@
 import { SubmitEventHandler } from "react";
-import { addAccount, AddAccount } from "../../commands/accounts";
+import { addAccount } from "../../commands/accounts";
 import { useModalStore } from "../../stores/modal-store";
+import { AVAILABLE_ACCOUNT_TYPES } from "../../definitions/consts";
+import type { AccountType, AddAccount } from "../../definitions/accounts";
 
 export function AddAccountModal() {
   const close = useModalStore((state) => state.close);
@@ -11,7 +13,7 @@ export function AddAccountModal() {
     const initialBalance = parseFloat(formData.get("balance") as string) || 0;
     const newEntry: AddAccount = {
       name: formData.get("name") as string,
-      acc_type: formData.get("acc_type") as string,
+      acc_type: formData.get("acc_type") as AccountType,
       currency: formData.get("currency") as string,
       initial_balance: initialBalance,
       notes: formData.get("notes") as string,
@@ -59,12 +61,11 @@ export function AddAccountModal() {
                   name="acc_type"
                   className="w-full border border-neutral-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
                 >
-                  <option>Banco</option>
-                  <option>Tarjeta Debito</option>
-                  <option>Tarjeta Credito</option>
-                  <option>Criptomoneda</option>
-                  <option>Efectivo</option>
-                  <option>Billetera virtual</option>
+                  {AVAILABLE_ACCOUNT_TYPES.map((type) => (
+                    <option className="capitalize" key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

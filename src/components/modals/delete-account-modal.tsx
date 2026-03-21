@@ -1,4 +1,5 @@
-import { Account, deleteAccount } from "../../commands/accounts";
+import { deleteAccount } from "../../commands/accounts";
+import type { Account } from "../../definitions/accounts";
 import { useModalStore } from "../../stores/modal-store";
 
 const handler = async (account: Account) => {
