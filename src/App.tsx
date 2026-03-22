@@ -1,24 +1,13 @@
 import "./App.css";
-import React, { useState } from "react";
-import { Settings, Wallet, List, Box, Boxes, ChartLine } from "lucide-react";
+import { useState } from "react";
+import { Settings } from "lucide-react";
 import WalletView from "./views/wallet-view";
 import { ViewLayout } from "./layouts/view-layout";
 import { ModalProvider } from "./providers/modal-provider";
+import { APP_VIEWS, AppView } from "./definitions/consts";
 
 function App() {
-  const [currentView, setCurrentView] = useState<"billetera" | "movimientos" | "grupos" | "items" | "reportes">("billetera");
-
-  const views: {
-    key: "billetera" | "movimientos" | "grupos" | "items" | "reportes";
-    label: string;
-    Icon: React.ComponentType<any>;
-  }[] = [
-    { key: "billetera", label: "billetera", Icon: Wallet },
-    { key: "movimientos", label: "movimientos", Icon: List },
-    { key: "grupos", label: "grupos", Icon: Boxes },
-    { key: "items", label: "items", Icon: Box },
-    { key: "reportes", label: "reportes", Icon: ChartLine },
-  ];
+  const [currentView, setCurrentView] = useState<AppView>("billetera");
 
   return (
     <div className="min-h-200 min-w-250 w-screen h-screen bg-neutral-100 grid grid-rows-[auto_1fr]">
@@ -33,7 +22,7 @@ function App() {
 
         {/* Center: View buttons */}
         <div className="flex items-center space-x-2">
-          {views.map(({ key, label, Icon }) => {
+          {APP_VIEWS.map(({ key, label, Icon }) => {
             const active = currentView === key;
             return (
               <button
@@ -89,6 +78,13 @@ function App() {
           <ViewLayout>
             <h2 className="text-xl font-semibold mb-2">Items</h2>
             <p className="text-sm text-neutral-600">Aquí va la vista de items.</p>
+          </ViewLayout>
+        )}
+
+        {currentView === "categories" && (
+          <ViewLayout>
+            <h2 className="text-xl font-semibold mb-2">Categorías</h2>
+            <p className="text-sm text-neutral-600">Aquí va la vista de categorías.</p>
           </ViewLayout>
         )}
 
