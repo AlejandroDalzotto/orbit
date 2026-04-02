@@ -3,10 +3,10 @@ import { ViewLayout } from "../layouts/view-layout";
 import { Eye, Pencil, Search, Trash2, Wallet } from "lucide-react";
 import { formatCurrency } from "../utils/format-currency";
 import { useModalStore } from "../stores/modal-store";
-import { AddAccountModal } from "../components/modals/add-account-modal";
-import { EditAccountModal } from "../components/modals/edit-account-modal";
-import { DeleteAccountModal } from "../components/modals/delete-account-modal";
-import AccountDetailsModal from "../components/modals/account-details-modal";
+import { AddAccountModal } from "../components/modals/accounts/add-account-modal";
+import { EditAccountModal } from "../components/modals/accounts/edit-account-modal";
+import { DeleteAccountModal } from "../components/modals/accounts/delete-account-modal";
+import AccountDetailsModal from "../components/modals/accounts/account-details-modal";
 import { Account } from "../definitions/accounts";
 import { useAccountActions, useAccounts } from "../stores/accounts-store";
 

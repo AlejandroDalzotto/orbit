@@ -5,6 +5,7 @@ import WalletView from "./views/wallet-view";
 import { ViewLayout } from "./layouts/view-layout";
 import { ModalProvider } from "./providers/modal-provider";
 import { APP_VIEWS, AppView } from "./definitions/consts";
+import CategoriesView from "./views/categories-view";
 
 function App() {
   const [currentView, setCurrentView] = useState<AppView>("billetera");
@@ -81,12 +82,7 @@ function App() {
           </ViewLayout>
         )}
 
-        {currentView === "categories" && (
-          <ViewLayout>
-            <h2 className="text-xl font-semibold mb-2">Categorías</h2>
-            <p className="text-sm text-neutral-600">Aquí va la vista de categorías.</p>
-          </ViewLayout>
-        )}
+        {currentView === "categories" && <CategoriesView />}
 
         {currentView === "reportes" && (
           <ViewLayout>

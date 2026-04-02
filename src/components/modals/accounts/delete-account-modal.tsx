@@ -1,6 +1,6 @@
-import type { Account } from "../../definitions/accounts";
-import { useAccountActions } from "../../stores/accounts-store";
-import { useModalStore } from "../../stores/modal-store";
+import type { Account } from "../../../definitions/accounts";
+import { useAccountActions } from "../../../stores/accounts-store";
+import { useModalStore } from "../../../stores/modal-store";
 
 /**
  * Este es un modal de confirmación que recibe una cuenta como prop y pregunta al usuario si está seguro de eliminarla.

@@ -19,6 +19,10 @@ pub fn run() {
             accounts::add_account,
             accounts::delete_account,
             accounts::update_account,
+            categories::get_categories,
+            categories::add_category,
+            categories::delete_category,
+            categories::update_category,
         ])
         .setup(|app| {
             // let db_path = app.path().app_data_dir()?.join("app.db");
