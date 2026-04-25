@@ -6,6 +6,7 @@ import { ViewLayout } from "./layouts/view-layout";
 import { ModalProvider } from "./providers/modal-provider";
 import { APP_VIEWS, AppView } from "./definitions/consts";
 import CategoriesView from "./views/categories-view";
+import MovementsView from "./views/movements-view";
 
 function App() {
   const [currentView, setCurrentView] = useState<AppView>("billetera");
@@ -61,12 +62,7 @@ function App() {
       <main className="p-6 relative h-full overflow-hidden">
         {currentView === "billetera" && <WalletView />}
 
-        {currentView === "movimientos" && (
-          <ViewLayout>
-            <h2 className="text-xl font-semibold mb-2">Movimientos</h2>
-            <p className="text-sm text-neutral-600">Aquí van los movimientos.</p>
-          </ViewLayout>
-        )}
+        {currentView === "movimientos" && <MovementsView />}
 
         {currentView === "grupos" && (
           <ViewLayout>

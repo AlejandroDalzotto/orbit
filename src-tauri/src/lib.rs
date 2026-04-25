@@ -1,10 +1,11 @@
-use rusqlite::{params, Connection};
+use rusqlite::Connection;
 use std::sync::Mutex;
 
 use tauri::Manager;
 
 pub mod accounts;
 pub mod categories;
+pub mod movements;
 
 pub struct AppState {
     conn: Mutex<Connection>,
@@ -23,6 +24,10 @@ pub fn run() {
             categories::add_category,
             categories::delete_category,
             categories::update_category,
+            movements::get_movements,
+            movements::add_movement,
+            movements::update_movement,
+            movements::delete_movement,
         ])
         .setup(|app| {
             // let db_path = app.path().app_data_dir()?.join("app.db");
@@ -33,20 +38,21 @@ pub fn run() {
 
             // MIGRATIONS.to_latest(&mut conn).unwrap();
 
-            let initial_script = std::fs::read_to_string("schema.sql").unwrap();
+            let schema = include_str!("../schema.sql");
 
-            conn.execute_batch(&initial_script).unwrap();
+            // initialize database with schema.sql
+            match conn.execute_batch(schema) {
+                Ok(_) => println!("Base de datos inicializada correctamente"),
+                Err(e) => println!("Error al inicializar la base de datos: {:?}", e),
+            }
 
-            conn.execute(
-                "INSERT INTO accounts (name, acc_type) VALUES (?1, ?2)",
-                params!["Cuenta inicial de ejemplo", "Banco"],
-            ).unwrap();
-
-            let account_id = conn.last_insert_rowid();
-            conn.execute(
-                "INSERT INTO balance_snapshots (account_id, balance, snapshot_date) VALUES (?1, ?2, ?3)",
-                params![account_id, 0, "2025-01-01"],
-            ).unwrap();
+            // WARNING: this is only used in development to populate with initial data. Do not use in production.
+            // populate with initial data
+            let data = include_str!("../data.sql");
+            match conn.execute_batch(data) {
+                Ok(_) => println!("Datos iniciales cargados correctamente"),
+                Err(e) => println!("Error al cargar datos iniciales: {:?}", e),
+            }
 
             app.manage(AppState {
                 conn: Mutex::new(conn),
