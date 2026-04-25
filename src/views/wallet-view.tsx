@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ViewLayout } from "../layouts/view-layout";
-import { Eye, Pencil, Search, Trash2, Wallet } from "lucide-react";
+import { Eye, Pencil, Trash2, Wallet } from "lucide-react";
 import { formatCurrency } from "../utils/format-currency";
 import { useModalStore } from "../stores/modal-store";
 import { AddAccountModal } from "../components/modals/accounts/add-account-modal";
@@ -9,6 +9,7 @@ import { DeleteAccountModal } from "../components/modals/accounts/delete-account
 import AccountDetailsModal from "../components/modals/accounts/account-details-modal";
 import { Account } from "../definitions/accounts";
 import { useAccountActions, useAccounts } from "../stores/accounts-store";
+import { SearchInput } from "../components/search-input";
 
 const AccountItem = ({ account }: { account: Account }) => {
   const open = useModalStore((state) => state.open);
@@ -129,17 +130,7 @@ export default function WalletView() {
           </div>
 
           {/* Search */}
-          <div className="relative max-w-md">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="w-4 h-4 text-neutral-400" />
-            </span>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar cuenta por nombre..."
-              className="pl-10 pr-3 py-1.5 text-sm border rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-200"
-            />
-          </div>
+          <SearchInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar cuenta por nombre..." />
         </div>
 
         {/* Accounts List */}

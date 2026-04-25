@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Tag, Search } from "lucide-react";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Tag } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { ViewLayout } from "../layouts/view-layout";
 import { Category } from "../definitions/categories";
 import { useModalStore } from "../stores/modal-store";
 import { useCategories, useCategoryActions } from "../stores/categories-store";
 import { AddCategoryModal } from "../components/modals/categories/add-category-modal";
 import { SearchInput } from "../components/search-input";
+import { DeleteCategoryModal } from "../components/modals/categories/delete-category-modal";
+import { EditCategoryModal } from "../components/modals/categories/edit-category-modal";
 
 const CategoryItem = ({ category }: { category: Category }) => {
   const open = useModalStore((state) => state.open);
@@ -22,10 +24,18 @@ const CategoryItem = ({ category }: { category: Category }) => {
       </div>
 
       <div className="flex items-center gap-1 shrink-0">
-        <button onClick={() => {}} className="p-1.5 rounded text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Editar">
+        <button
+          onClick={() => open(<EditCategoryModal category={category} />)}
+          className="p-1.5 rounded text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+          title="Editar"
+        >
           <Pencil className="w-4 h-4" />
         </button>
-        <button onClick={() => {}} className="p-1.5 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Eliminar">
+        <button
+          onClick={() => open(<DeleteCategoryModal category={category} />)}
+          className="p-1.5 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+          title="Eliminar"
+        >
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
