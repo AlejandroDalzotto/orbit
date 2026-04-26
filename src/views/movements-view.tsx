@@ -5,6 +5,7 @@ import { useModalStore } from "../stores/modal-store";
 import { formatCurrency } from "../utils/format-currency";
 import { Movement, MovementType } from "../definitions/movements";
 import { useMovementActions, useMovements } from "../stores/movements-store";
+import { AddMovementModal } from "../components/modals/movements/add-movement-modal";
 
 type MovTypeConfig = {
   label: string;
@@ -81,6 +82,7 @@ export default function MovementsView() {
   const movements = useMovements();
   const { initialize } = useMovementActions();
   const [query, setQuery] = useState("");
+  const open = useModalStore((s) => s.open);
 
   useEffect(() => {
     initialize();
@@ -120,7 +122,10 @@ export default function MovementsView() {
               </h2>
               <p className="text-sm text-neutral-500">Registros de ingresos, egresos y transferencias.</p>
             </div>
-            <button onClick={() => {}} className="px-3 py-1 bg-blue-500 text-white text-sm cursor-pointer rounded hover:bg-blue-600">
+            <button
+              onClick={() => open(<AddMovementModal />)}
+              className="px-3 py-1 bg-blue-500 text-white text-sm cursor-pointer rounded hover:bg-blue-600"
+            >
               Añadir movimiento
             </button>
           </div>
