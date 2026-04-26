@@ -1,7 +1,7 @@
 import { useModalStore } from "../../../stores/modal-store";
 import { useMovementActions } from "../../../stores/movements-store";
-import { useAccounts } from "../../../stores/accounts-store";
-import { useCategories } from "../../../stores/categories-store";
+import { useAccountActions, useAccounts } from "../../../stores/accounts-store";
+import { useCategories, useCategoryActions } from "../../../stores/categories-store";
 import type { AddMovement, MovementType, Currency } from "../../../definitions/movements";
 import { SubmitEventHandler } from "react";
 
@@ -10,6 +10,8 @@ const today = () => new Date().toISOString().split("T")[0];
 export function AddMovementModal() {
   const close = useModalStore((s) => s.close);
   const { addMovement } = useMovementActions();
+  const { initialize: initializeCategories } = useCategoryActions();
+  const { initialize: initializeAccounts } = useAccountActions();
   const accounts = useAccounts();
   const categories = useCategories();
 
@@ -36,8 +38,25 @@ export function AddMovementModal() {
       category_id,
     };
 
-    await addMovement(newEntry);
-    close();
+    try {
+      await addMovement(newEntry);
+
+      // If the added movement includes a category, refresh the categories store
+      // so the client-side state and UI reflect any server-side changes.
+      // This keeps category lists, counts and related data consistent across the app.
+      if (category_id) {
+        await initializeCategories();
+      }
+
+      // Always refresh the accounts store after adding a movement,
+      // so the client-side state and UI reflect any server-side changes.
+      // This keeps account lists and related data consistent across the app.
+      await initializeAccounts();
+
+      close();
+    } catch (error) {
+      // TODO: handle error on addMovement failure.
+    }
   };
 
   return (

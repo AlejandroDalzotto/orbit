@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Tag } from "lucide-react";
 import { Pencil, Trash2 } from "lucide-react";
 import { ViewLayout } from "../layouts/view-layout";
 import { Category } from "../definitions/categories";
 import { useModalStore } from "../stores/modal-store";
-import { useCategories, useCategoryActions } from "../stores/categories-store";
+import { useCategories } from "../stores/categories-store";
 import { AddCategoryModal } from "../components/modals/categories/add-category-modal";
 import { SearchInput } from "../components/search-input";
 import { DeleteCategoryModal } from "../components/modals/categories/delete-category-modal";
@@ -45,13 +45,8 @@ const CategoryItem = ({ category }: { category: Category }) => {
 
 export default function CategoriesView() {
   const categories = useCategories();
-  const { initialize } = useCategoryActions();
   const [query, setQuery] = useState("");
   const open = useModalStore((state) => state.open);
-
-  useEffect(() => {
-    initialize();
-  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

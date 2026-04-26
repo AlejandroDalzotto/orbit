@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Eye, List, Pencil, Search, Trash2 } from "lucide-react";
 import { ViewLayout } from "../layouts/view-layout";
 import { useModalStore } from "../stores/modal-store";
 import { formatCurrency } from "../utils/format-currency";
 import { Movement, MovementType } from "../definitions/movements";
-import { useMovementActions, useMovements } from "../stores/movements-store";
+import { useMovements } from "../stores/movements-store";
 import { AddMovementModal } from "../components/modals/movements/add-movement-modal";
 
 type MovTypeConfig = {
@@ -36,7 +36,7 @@ const MOV_TYPE_CONFIG: Record<MovementType, MovTypeConfig> = {
 };
 
 const MovementItem = ({ movement }: { movement: Movement }) => {
-  const open = useModalStore((state) => state.open);
+  // const open = useModalStore((state) => state.open);
   const config = MOV_TYPE_CONFIG[movement.mov_type];
   const date = new Date(movement.date).toLocaleDateString("es-AR");
 
@@ -80,13 +80,8 @@ const MovementItem = ({ movement }: { movement: Movement }) => {
 
 export default function MovementsView() {
   const movements = useMovements();
-  const { initialize } = useMovementActions();
   const [query, setQuery] = useState("");
   const open = useModalStore((s) => s.open);
-
-  useEffect(() => {
-    initialize();
-  }, []);
 
   // Stats — calculados en ARS para consistencia entre monedas
   const stats = useMemo(() => {

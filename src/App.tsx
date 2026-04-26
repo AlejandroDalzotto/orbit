@@ -1,5 +1,5 @@
 import "./App.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Settings } from "lucide-react";
 import WalletView from "./views/wallet-view";
 import { ViewLayout } from "./layouts/view-layout";
@@ -7,9 +7,22 @@ import { ModalProvider } from "./providers/modal-provider";
 import { APP_VIEWS, AppView } from "./definitions/consts";
 import CategoriesView from "./views/categories-view";
 import MovementsView from "./views/movements-view";
+import { useAccountActions } from "./stores/accounts-store";
+import { useMovementActions } from "./stores/movements-store";
+import { useCategoryActions } from "./stores/categories-store";
 
 function App() {
   const [currentView, setCurrentView] = useState<AppView>("billetera");
+  const { initialize: initializeAccounts } = useAccountActions();
+  const { initialize: initializeMovements } = useMovementActions();
+  const { initialize: initializeCategories } = useCategoryActions();
+
+  // initialize all stores on app load.
+  useEffect(() => {
+    initializeAccounts();
+    initializeMovements();
+    initializeCategories();
+  }, []);
 
   return (
     <div className="min-h-200 min-w-250 w-screen h-screen bg-neutral-100 grid grid-rows-[auto_1fr]">
