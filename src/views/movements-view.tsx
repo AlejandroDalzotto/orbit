@@ -6,6 +6,9 @@ import { formatCurrency } from "../utils/format-currency";
 import { Movement, MovementType } from "../definitions/movements";
 import { useMovements } from "../stores/movements-store";
 import { AddMovementModal } from "../components/modals/movements/add-movement-modal";
+import { MovementDetailsModal } from "../components/modals/movements/movement-details-modal";
+import { EditMovementModal } from "../components/modals/movements/edit-movement-modal";
+import { DeleteMovementModal } from "../components/modals/movements/delete-movement-modal";
 
 type MovTypeConfig = {
   label: string;
@@ -36,7 +39,7 @@ const MOV_TYPE_CONFIG: Record<MovementType, MovTypeConfig> = {
 };
 
 const MovementItem = ({ movement }: { movement: Movement }) => {
-  // const open = useModalStore((state) => state.open);
+  const open = useModalStore((state) => state.open);
   const config = MOV_TYPE_CONFIG[movement.mov_type];
   const date = new Date(movement.date).toLocaleDateString("es-AR");
 
@@ -60,16 +63,24 @@ const MovementItem = ({ movement }: { movement: Movement }) => {
         <p className="font-semibold text-neutral-900 text-sm">{formatCurrency(movement.original_amount, movement.currency)}</p>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => {}}
+            onClick={() => open(<MovementDetailsModal movement={movement} />)}
             className="p-1.5 rounded text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
             title="Ver detalles"
           >
             <Eye className="w-4 h-4" />
           </button>
-          <button onClick={() => {}} className="p-1.5 rounded text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Editar">
+          <button
+            onClick={() => open(<EditMovementModal movement={movement} />)}
+            className="p-1.5 rounded text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            title="Editar"
+          >
             <Pencil className="w-4 h-4" />
           </button>
-          <button onClick={() => {}} className="p-1.5 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Eliminar">
+          <button
+            onClick={() => open(<DeleteMovementModal movement={movement} />)}
+            className="p-1.5 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            title="Eliminar"
+          >
             <Trash2 className="w-4 h-4" />
           </button>
         </div>

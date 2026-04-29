@@ -74,7 +74,7 @@ CREATE TABLE movements (
     account_id      INTEGER NOT NULL,
     category_id     INTEGER,
     FOREIGN KEY (account_id)  REFERENCES accounts    (id),
-    FOREIGN KEY (category_id) REFERENCES categories  (id)
+    FOREIGN KEY (category_id) REFERENCES categories  (id) ON DELETE SET NULL
 );
 
 -- -------------------------------------------------------------
@@ -108,7 +108,7 @@ CREATE TABLE movements_groups (
     id       INTEGER PRIMARY KEY NOT NULL,
     mov_id   INTEGER NOT NULL,
     group_id INTEGER NOT NULL,
-    FOREIGN KEY (mov_id)   REFERENCES movements (id),
+    FOREIGN KEY (mov_id)   REFERENCES movements (id) ON DELETE CASCADE,
     FOREIGN KEY (group_id) REFERENCES groups    (id),
     UNIQUE (mov_id, group_id)
 );
@@ -144,7 +144,7 @@ CREATE TABLE purchases (
     item_id    INTEGER NOT NULL,
     store_id   INTEGER,          -- nullable
     created_at TEXT    NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (mov_id)   REFERENCES movements (id),
+    FOREIGN KEY (mov_id)   REFERENCES movements (id) ON DELETE CASCADE,
     FOREIGN KEY (item_id)  REFERENCES items     (id),
     FOREIGN KEY (store_id) REFERENCES stores    (id)
 );
