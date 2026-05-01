@@ -77,13 +77,6 @@ function App() {
 
         {currentView === "movimientos" && <MovementsView />}
 
-        {currentView === "grupos" && (
-          <ViewLayout>
-            <h2 className="text-xl font-semibold mb-2">Grupos</h2>
-            <p className="text-sm text-neutral-600">Aquí va la vista de grupos.</p>
-          </ViewLayout>
-        )}
-
         {currentView === "items" && (
           <ViewLayout>
             <h2 className="text-xl font-semibold mb-2">Items</h2>
