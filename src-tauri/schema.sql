@@ -109,7 +109,7 @@ CREATE TABLE movements_groups (
     mov_id   INTEGER NOT NULL,
     group_id INTEGER NOT NULL,
     FOREIGN KEY (mov_id)   REFERENCES movements (id) ON DELETE CASCADE,
-    FOREIGN KEY (group_id) REFERENCES groups    (id),
+    FOREIGN KEY (group_id) REFERENCES groups    (id) ON DELETE CASCADE,
     UNIQUE (mov_id, group_id)
 );
 
