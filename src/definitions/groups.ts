@@ -14,4 +14,11 @@ export type GroupWithMovements = Group & {
 export type AddGroup = {
   name: string;
   description: string | null;
+  movement_ids: number[];
+};
+
+export type UpdateGroup = {
+  name: string;
+  description?: string | null;
+  movement_ids?: number[];
 };

@@ -10,18 +10,21 @@ import MovementsView from "./views/movements-view";
 import { useAccountActions } from "./stores/accounts-store";
 import { useMovementActions } from "./stores/movements-store";
 import { useCategoryActions } from "./stores/categories-store";
+import { useGroupActions } from "./stores/groups-stores";
 
 function App() {
   const [currentView, setCurrentView] = useState<AppView>("billetera");
   const { initialize: initializeAccounts } = useAccountActions();
   const { initialize: initializeMovements } = useMovementActions();
   const { initialize: initializeCategories } = useCategoryActions();
+  const { initialize: initializeGroups } = useGroupActions();
 
   // initialize all stores on app load.
   useEffect(() => {
     initializeAccounts();
     initializeMovements();
     initializeCategories();
+    initializeGroups();
   }, []);
 
   return (

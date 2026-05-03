@@ -5,6 +5,7 @@ use tauri::Manager;
 
 pub mod accounts;
 pub mod categories;
+pub mod groups;
 pub mod movements;
 
 pub struct AppState {
@@ -28,6 +29,10 @@ pub fn run() {
             movements::add_movement,
             movements::update_movement,
             movements::delete_movement,
+            groups::get_groups,
+            groups::add_group,
+            groups::delete_group,
+            groups::update_group,
         ])
         .setup(|app| {
             // let db_path = app.path().app_data_dir()?.join("app.db");

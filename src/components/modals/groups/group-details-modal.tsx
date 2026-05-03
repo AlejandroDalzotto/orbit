@@ -1,8 +1,8 @@
 import { LineSeries } from "lightweight-charts";
-import { MOV_TYPE_CONFIG } from "../../../views/movements-view";
 import { GroupWithMovements } from "../../../definitions/groups";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatCurrency } from "../../../utils/format-currency";
+import { MOV_TYPE_CONFIG } from "../../../definitions/consts";
 
 type ChartMode = "by_type" | "cumulative_by_type" | "cumulative_total";
 
