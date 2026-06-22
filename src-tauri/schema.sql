@@ -68,6 +68,11 @@ CREATE TABLE movements (
     mov_type        TEXT    NOT NULL CHECK (mov_type IN ('income', 'expense', 'transfer')),
     currency        TEXT    NOT NULL CHECK (currency IN ('ARS', 'USD')) DEFAULT 'ARS',
     original_amount INTEGER NOT NULL, -- en centavos, moneda original
+    -- NOTE: 'ars_amount' is the normalized reference amount used across all analytics, charts and reports.
+    -- All movements are stored in their original currency (original_amount), but converted to ARS at
+    -- registration time so that multi-currency data can be aggregated and compared consistently.
+    -- Renaming this field to something like 'normalized_amount' or 'reference_amount' would better
+    -- reflect its purpose, but requires a migration. Consider renaming before v1.0 to something like "base_amount".
     ars_amount      INTEGER NOT NULL, -- en centavos, convertido a ARS al registrar
     exchange_rate   INTEGER,          -- tasa de conversión, NULL si ARS
     rate_type       TEXT    CHECK (rate_type IN ('blue', 'oficial', 'mep', 'ccl', 'cripto', NULL)),
@@ -117,36 +122,40 @@ CREATE TABLE movements_groups (
 --  ITEMS & STORES
 --  Para registrar el detalle de compras (qué se compró, dónde).
 -- -------------------------------------------------------------
+
 CREATE TABLE items (
     id         INTEGER PRIMARY KEY NOT NULL,
     name       TEXT NOT NULL,
     brand      TEXT,
+    is_archived INTEGER NOT NULL DEFAULT 0, -- 0 = Activo, 1 = Archivado (Soft Delete)
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE stores (
     id         INTEGER PRIMARY KEY NOT NULL,
     name       TEXT NOT NULL,
+    color      TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- -------------------------------------------------------------
---  PURCHASES
---  Detalle de ítems dentro de un movimiento.
---  El precio se almacena en la misma moneda que el movimiento padre.
---  store_id es nullable: no siempre es relevante registrar la tienda.
--- -------------------------------------------------------------
 CREATE TABLE purchases (
     id         INTEGER PRIMARY KEY NOT NULL,
-    price      INTEGER NOT NULL, -- en centavos, misma moneda que el movimiento
+    price      INTEGER NOT NULL, -- En centavos, misma moneda que el movimiento
     quantity   INTEGER NOT NULL DEFAULT 1,
-    mov_id     INTEGER NOT NULL,
-    item_id    INTEGER NOT NULL,
-    store_id   INTEGER,          -- nullable
+    mov_id     INTEGER NOT NULL, -- La compra debe estar asociada a un movimiento, sin excepciones.
+    item_id    INTEGER NOT NULL, -- Al igual que el movimiento, el ítem debe existir antes de la compra.
+    store_id   INTEGER,          -- Nullable para soportar ON DELETE SET NULL
     created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+
+    -- Si se borra el movimiento padre, se elimina el desglose automáticamente
     FOREIGN KEY (mov_id)   REFERENCES movements (id) ON DELETE CASCADE,
-    FOREIGN KEY (item_id)  REFERENCES items     (id),
-    FOREIGN KEY (store_id) REFERENCES stores    (id)
+
+    -- RESTRICT: No permite borrar físicamente el ítem de la DB si tiene compras asociadas.
+    -- El frontend deberá usar la lógica de archivar (is_archived = 1) para "borrarlo".
+    FOREIGN KEY (item_id)  REFERENCES items (id) ON DELETE RESTRICT,
+
+    -- Si se borra la tienda, la compra se mantiene pero queda sin comercio asignado
+    FOREIGN KEY (store_id) REFERENCES stores (id) ON DELETE SET NULL
 );
 
 -- =============================================================

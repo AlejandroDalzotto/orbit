@@ -17,7 +17,8 @@
         "height": 800,
         "center": true,
         "minWidth": 1000,
-        "minHeight": 800
+        "minHeight": 800,
+        "backgroundColor": "#060606"
       }
     ],
     "security": {

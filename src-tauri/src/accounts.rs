@@ -4,16 +4,16 @@ use serde::{Deserialize, Serialize};
 use crate::AppState;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum CurrentupportedCurrencies {
+pub enum Currency {
     USD,
     ARS,
 }
 
-impl ToSql for CurrentupportedCurrencies {
+impl ToSql for Currency {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
         let s: &str = match self {
-            CurrentupportedCurrencies::USD => "USD",
-            CurrentupportedCurrencies::ARS => "ARS",
+            Currency::USD => "USD",
+            Currency::ARS => "ARS",
         };
         Ok(rusqlite::types::ToSqlOutput::from(s))
     }
@@ -67,7 +67,7 @@ pub fn get_accounts(state: tauri::State<AppState>) -> Vec<Account> {
 pub struct AddAccount {
     name: String,
     acc_type: String,
-    currency: CurrentupportedCurrencies,
+    currency: Currency,
     initial_balance: f64,
     notes: Option<String>,
 }

@@ -1,1 +1,212 @@
 @import "tailwindcss";
+
+:root {
+    /* Custom scrollbar (dark) */
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: oklch(1 0 0 / 14%);
+    --scrollbar-thumb-hover: oklch(1 0 0 / 28%);
+
+    /* Custom scrollbar (light) */
+    /*--scrollbar-track: transparent;
+    --scrollbar-thumb: oklch(0.145 0 0 / 18%);
+    --scrollbar-thumb-hover: oklch(0.145 0 0 / 32%);*/
+}
+
+@layer base {
+    @font-face {
+        font-family: "Prociono";
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url("/Prociono.ttf") format("truetype");
+    }
+    /* Add more @font-face blocks for other weights/styles */
+}
+
+@theme {
+    /* Creates a utility class 'font-primary' */
+    --font-primary: "Prociono", sans-serif;
+
+    /* Optionally override the default sans font */
+    --default-font-family: "Prociono", sans-serif;
+}
+
+/* ===== Orbit SplashScreen animations ===== */
+
+/* Soft entrance: fade up + scale in */
+@keyframes orbit-fade-up {
+    0% {
+        opacity: 0;
+        transform: translateY(12px) scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Animated glow for the "Orbit" wordmark (pulsing text-shadow) */
+@keyframes orbit-text-glow {
+    0%,
+    100% {
+        text-shadow:
+            0 0 8px rgba(255, 255, 255, 0.35),
+            0 0 18px rgba(255, 255, 255, 0.18),
+            0 0 40px rgba(255, 255, 255, 0.08);
+    }
+    50% {
+        text-shadow:
+            0 0 14px rgba(255, 255, 255, 0.65),
+            0 0 34px rgba(255, 255, 255, 0.4),
+            0 0 70px rgba(255, 255, 255, 0.22);
+    }
+}
+
+/* Gentle breathing glow halo behind the logo */
+@keyframes orbit-halo {
+    0%,
+    100% {
+        opacity: 0.35;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.08);
+    }
+}
+
+/* Subtle float for the logo mark */
+@keyframes orbit-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+/* Loading dots */
+@keyframes orbit-dot {
+    0%,
+    80%,
+    100% {
+        opacity: 0.2;
+    }
+    40% {
+        opacity: 1;
+    }
+}
+
+/* Indeterminate progress sweep */
+@keyframes orbit-progress {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(400%);
+    }
+}
+
+.animate-orbit-fade-up {
+    animation: orbit-fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-orbit-text-glow {
+    animation: orbit-text-glow 3.2s ease-in-out infinite;
+}
+.animate-orbit-halo {
+    animation: orbit-halo 4s ease-in-out infinite;
+}
+.animate-orbit-float {
+    animation: orbit-float 5s ease-in-out infinite;
+}
+.animate-orbit-progress {
+    animation: orbit-progress 1.6s ease-in-out infinite;
+}
+.animate-orbit-dot {
+    animation: orbit-dot 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-orbit-fade-up,
+    .animate-orbit-text-glow,
+    .animate-orbit-halo,
+    .animate-orbit-float,
+    .animate-orbit-progress,
+    .animate-orbit-dot {
+        animation: none;
+    }
+}
+
+/* ===== Custom scrollbar — minimalist, mode-aware ===== */
+
+* {
+    /* Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* WebKit / Chromium / Safari */
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* dropdown styles */
+
+.mov-pop {
+    transform-origin: top;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition:
+        opacity 0.18s ease,
+        transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@starting-style {
+    .mov-pop {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.97);
+    }
+}
+
+/* Staggered option rows inside a popover */
+.mov-pop-item {
+    opacity: 1;
+    transform: translateX(0);
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@starting-style {
+    .mov-pop-item {
+        opacity: 0;
+        transform: translateX(-6px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mov-pop,
+    .mov-pop-item {
+        transition: none;
+    }
+}

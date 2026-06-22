@@ -1,10 +1,10 @@
 import { Category } from "../../../definitions/categories";
-import { useCategoryActions } from "../../../stores/categories-store";
+import { useGlobalStore } from "../../../stores/global-data-store";
 import { useModalStore } from "../../../stores/modal-store";
 
 export function DeleteCategoryModal({ category }: { category: Category }) {
   const close = useModalStore((state) => state.close);
-  const { deleteCategory } = useCategoryActions();
+  const deleteCategory = useGlobalStore((state) => state.deleteCategory);
 
   const handler = async (category: Category) => {
     await deleteCategory(category.id);

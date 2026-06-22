@@ -1,8 +1,9 @@
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight } from "lucide-react";
 import { Movement, MovementType } from "../../../definitions/movements";
 import { formatCurrency } from "../../../utils/format-currency";
-import { useAccounts } from "../../../stores/accounts-store";
-import { useCategories } from "../../../stores/categories-store";
+import { useAccounts, useCategories, useGlobalStore } from "../../../stores/global-data-store";
+import { useEffect, useState } from "react";
+import type { ItemWithPurchase } from "../../../definitions/items";
 
 const movTypeConfig: Record<MovementType, { label: string; icon: React.ReactNode; color: string }> = {
   income: { label: "Ingreso", icon: <ArrowDownLeft className="w-3.5 h-3.5" />, color: "text-emerald-600 bg-emerald-50" },
@@ -22,6 +23,8 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
 );
 
 export function MovementDetailsModal({ movement }: { movement: Movement }) {
+  const [items, setItems] = useState<ItemWithPurchase[]>([]);
+
   const config = movTypeConfig[movement.mov_type as MovementType];
   const date = new Date(movement.date).toLocaleDateString("es-AR");
   const created = new Date(movement.created_at).toLocaleString("es-AR");
@@ -32,6 +35,16 @@ export function MovementDetailsModal({ movement }: { movement: Movement }) {
 
   const categories = useCategories();
   const category = categories.find((cat) => cat.id === movement.category_id);
+
+  const getItemsByMovementId = useGlobalStore((state) => state.getItemsByMovementId);
+
+  useEffect(() => {
+    const fetchItems = async () => {
+      const items = await getItemsByMovementId(movement.id);
+      setItems(items);
+    };
+    fetchItems();
+  }, []);
 
   return (
     <>
@@ -80,6 +93,34 @@ export function MovementDetailsModal({ movement }: { movement: Movement }) {
           <Field label="Cuenta" value={account?.name ?? "-"} />
 
           <Field label="Categoría" value={category?.name ?? "-"} />
+        </div>
+
+        {/* Lista de items */}
+        <div>
+          <p className="text-xs font-medium text-neutral-400 uppercase tracking-wide mb-3">Items</p>
+          <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+            {items.length === 0 ? (
+              <p className="text-sm text-neutral-400">Este grupo no tiene items.</p>
+            ) : (
+              items.map((item) => {
+                return (
+                  <div key={item.item_id} className="flex items-start justify-between p-2.5 rounded border border-neutral-200 bg-neutral-50">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-neutral-900 truncate">{item.item_name}</p>
+                      <div className="flex gap-2 mt-1">
+                        {item.item_brand && <p className="text-xs text-neutral-500">{item.item_brand}</p>}
+                        {item.store_name && <p className="text-xs text-neutral-500">· {item.store_name}</p>}
+                      </div>
+                    </div>
+                    <div className="ml-3 text-right shrink-0">
+                      <p className="text-sm font-semibold text-neutral-900">{formatCurrency(item.price, currency)}</p>
+                      <p className="text-xs text-neutral-500">x{item.quantity}</p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     </>

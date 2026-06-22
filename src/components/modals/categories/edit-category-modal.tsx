@@ -1,11 +1,11 @@
 import { SubmitEventHandler } from "react";
 import { useModalStore } from "../../../stores/modal-store";
 import { Category } from "../../../definitions/categories";
-import { useCategoryActions } from "../../../stores/categories-store";
+import { useGlobalStore } from "../../../stores/global-data-store";
 
 export function EditCategoryModal({ category }: { category: Category }) {
   const close = useModalStore((state) => state.close);
-  const { updateCategory } = useCategoryActions();
+  const updateCategory = useGlobalStore((state) => state.updateCategory);
 
   const handler: SubmitEventHandler = async (e) => {
     e.preventDefault();

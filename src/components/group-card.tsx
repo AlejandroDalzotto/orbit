@@ -2,12 +2,12 @@ import { Pencil, Trash2 } from "lucide-react";
 import { GroupWithMovements } from "../definitions/groups";
 import { useModalStore } from "../stores/modal-store";
 import { GroupDetailsModal } from "./modals/groups/group-details-modal";
-import { useGroupActions } from "../stores/groups-stores";
 import { EditGroupModal } from "./modals/groups/update-group-modal";
+import { useGlobalStore } from "../stores/global-data-store";
 
 export const GroupCard = ({ group }: { group: GroupWithMovements }) => {
   const open = useModalStore((s) => s.open);
-  const { deleteGroup } = useGroupActions();
+  const deleteGroup = useGlobalStore((state) => state.deleteGroup);
 
   return (
     <div

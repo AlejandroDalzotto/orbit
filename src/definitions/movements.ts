@@ -57,3 +57,32 @@ export interface UpdateMovement {
   rate_type: RateType | null;
   category_id: number | null;
 }
+
+export type Period = "1m" | "3m" | "1y";
+export type SortField = "date" | "details" | "amount";
+export type SortOrder = "ASC" | "DESC";
+
+export interface SortCriteria {
+  field: SortField;
+  order: SortOrder;
+}
+
+export type MovementTypeFilter = "all" | MovementType;
+
+// Interfaz que matchea con tu struct de Rust
+export interface MovementFilters {
+  period?: Period;
+  sort?: SortCriteria;
+  limit: number;
+  offset: number;
+  categoryId?: number | null;
+  groupId?: number | null;
+  query?: string;
+  type: MovementTypeFilter;
+}
+
+export interface MovementStats {
+  totalIncome: number;
+  totalExpense: number;
+  totalNet: number;
+}

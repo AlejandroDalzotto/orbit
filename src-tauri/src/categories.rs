@@ -1,7 +1,7 @@
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
-use crate::AppState;
+use crate::errors::OrbitError;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Category {
@@ -12,7 +12,7 @@ pub struct Category {
 }
 
 #[tauri::command]
-pub fn get_categories(state: tauri::State<AppState>) -> Vec<Category> {
+pub fn get_categories(state: tauri::State<crate::AppState>) -> Vec<Category> {
     let conn = state.conn.lock().unwrap();
 
     let mut stmt = conn
@@ -40,48 +40,47 @@ pub fn get_categories(state: tauri::State<AppState>) -> Vec<Category> {
 }
 
 #[tauri::command]
-pub fn add_category(state: tauri::State<AppState>, name: String) -> Category {
+pub fn add_category(state: tauri::State<crate::AppState>, name: String) -> Result<i64, OrbitError> {
     let conn = state.conn.lock().unwrap();
-    let category = conn
-        .query_one(
-            "INSERT INTO categories (name) VALUES (?1) RETURNING id, name, created_at",
-            params![name],
-            |row| {
-                Ok(Category {
-                    id: row.get::<_, i64>(0).unwrap(),
-                    name: row.get::<_, String>(1).unwrap(),
-                    created_at: row.get::<_, String>(2).unwrap(),
-                    movement_count: Some(0),
-                })
-            },
-        )
-        .unwrap();
-    category
+
+    conn.execute("INSERT INTO categories (name) VALUES (?1)", params![name])?;
+
+    // Recuperamos el ID autoincremental generado por SQLite para esa fila
+    let id = conn.last_insert_rowid();
+
+    // Devolvemos el ID en el Ok
+    Ok(id)
 }
 
 #[tauri::command]
-pub fn delete_category(state: tauri::State<AppState>, id: i64) -> bool {
+pub fn delete_category(state: tauri::State<crate::AppState>, id: i64) -> Result<(), OrbitError> {
     let conn = state.conn.lock().unwrap();
-    let result = conn.execute("DELETE FROM categories WHERE id = ?1", params![id]);
-    result.is_ok()
+
+    let rows_affected = conn.execute("DELETE FROM categories WHERE id = ?1", params![id])?;
+
+    if rows_affected == 0 {
+        return Err(OrbitError::NotFound("Categoría no encontrada".into()));
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
-pub fn update_category(state: tauri::State<AppState>, id: i64, name: String) -> Category {
+pub fn update_category(
+    state: tauri::State<crate::AppState>,
+    id: i64,
+    name: String,
+) -> Result<(), OrbitError> {
     let conn = state.conn.lock().unwrap();
-    let category = conn
-        .query_one(
-            "UPDATE categories SET name = ?1 WHERE id = ?2 RETURNING id, name, created_at",
-            params![name, id],
-            |row| {
-                Ok(Category {
-                    id: row.get::<_, i64>(0).unwrap(),
-                    name: row.get::<_, String>(1).unwrap(),
-                    created_at: row.get::<_, String>(2).unwrap(),
-                    movement_count: None,
-                })
-            },
-        )
-        .unwrap();
-    category
+
+    let rows_affected = conn.execute(
+        "UPDATE categories SET name = ? WHERE id = ?",
+        [&name, &id.to_string()], // rusqlite pide params mapeados
+    )?;
+
+    if rows_affected == 0 {
+        return Err(OrbitError::NotFound("Categoría no encontrada".into()));
+    }
+
+    Ok(())
 }

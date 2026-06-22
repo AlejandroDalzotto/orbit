@@ -5,8 +5,12 @@ use tauri::Manager;
 
 pub mod accounts;
 pub mod categories;
+pub mod errors;
 pub mod groups;
+pub mod items;
 pub mod movements;
+pub mod purchases;
+pub mod utils;
 
 pub struct AppState {
     conn: Mutex<Connection>,
@@ -26,13 +30,24 @@ pub fn run() {
             categories::delete_category,
             categories::update_category,
             movements::get_movements,
+            movements::get_movements_stats,
+            movements::get_movements_by_account_id,
             movements::add_movement,
             movements::update_movement,
             movements::delete_movement,
+            movements::items_by_movement,
             groups::get_groups,
             groups::add_group,
             groups::delete_group,
             groups::update_group,
+            items::get_items,
+            items::add_item,
+            items::delete_item,
+            items::update_item,
+            items::get_stores,
+            purchases::get_purchases,
+            purchases::purchases_by_item,
+            purchases::add_purchase,
         ])
         .setup(|app| {
             // let db_path = app.path().app_data_dir()?.join("app.db");

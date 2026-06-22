@@ -1,15 +1,15 @@
-import { SubmitEventHandler, useMemo, useState } from "react";
+import { SubmitEventHandler, useState } from "react";
 import { useModalStore } from "../../../stores/modal-store";
-import { Movement } from "../../../definitions/movements";
 import { AddGroup } from "../../../definitions/groups";
 import { MOV_TYPE_CONFIG } from "../../../definitions/consts";
 import { formatCurrency } from "../../../utils/format-currency";
-import { useGroupActions } from "../../../stores/groups-stores";
+import { useGlobalStore } from "../../../stores/global-data-store";
 
-export const AddGroupModal = ({ movements }: { movements: Movement[] }) => {
+export const AddGroupModal = () => {
   const close = useModalStore((s) => s.close);
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const { addGroup } = useGroupActions();
+  const addGroup = useGlobalStore((state) => state.addGroup);
+  const movements = useGlobalStore((state) => state.movements);
 
   const toggleMovement = (id: number) => {
     setSelected((prev) => {
@@ -30,8 +30,6 @@ export const AddGroupModal = ({ movements }: { movements: Movement[] }) => {
     await addGroup(group);
     close();
   };
-
-  const sortedMovements = useMemo(() => [...movements].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [movements]);
 
   return (
     <>
@@ -78,10 +76,10 @@ export const AddGroupModal = ({ movements }: { movements: Movement[] }) => {
             )}
           </div>
           <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-            {sortedMovements.length === 0 ? (
+            {movements.length === 0 ? (
               <p className="text-sm text-neutral-400">No hay movimientos disponibles.</p>
             ) : (
-              sortedMovements.map((mov) => {
+              movements.map((mov) => {
                 const config = MOV_TYPE_CONFIG[mov.mov_type];
                 const date = new Date(mov.date).toLocaleDateString("es-AR");
                 const isSelected = selected.has(mov.id);

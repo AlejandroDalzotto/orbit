@@ -1,8 +1,18 @@
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Box, ChartLine, Grid2x2, List, Wallet } from "lucide-react";
 import { AccountType } from "./accounts";
-import type { MovementType } from "./movements";
+import type { MovementFilters, MovementType } from "./movements";
 
 export const AVAILABLE_ACCOUNT_TYPES = Object.values(AccountType);
+
+export const ITEMS_PER_PAGE = 30;
+
+export const DEFAULT_MOVEMENTS_FILTERS: MovementFilters = {
+  period: "1m",
+  sort: { field: "date", order: "DESC" },
+  limit: ITEMS_PER_PAGE,
+  offset: 0,
+  type: "all",
+};
 
 export type AppView = "billetera" | "movimientos" | "items" | "reportes" | "categories";
 
@@ -10,12 +20,13 @@ export const APP_VIEWS: {
   key: AppView;
   label: string;
   Icon: React.ComponentType<any>;
+  title: string;
 }[] = [
-  { key: "billetera", label: "billetera", Icon: Wallet },
-  { key: "movimientos", label: "movimientos", Icon: List },
-  { key: "items", label: "items", Icon: Box },
-  { key: "reportes", label: "reportes", Icon: ChartLine },
-  { key: "categories", label: "categorías", Icon: Grid2x2 },
+  { key: "billetera", label: "bil", Icon: Wallet, title: "Tu cartera y cuentas" },
+  { key: "movimientos", label: "mov", Icon: List, title: "Registro del movimiento de tu dinero" },
+  { key: "items", label: "art", Icon: Box, title: "Información sobre tus compras" },
+  { key: "reportes", label: "rep", Icon: ChartLine, title: "Análisis y reportes" },
+  { key: "categories", label: "cat", Icon: Grid2x2, title: "Organización de categorías" },
 ];
 
 export type MovTypeConfig = {

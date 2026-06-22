@@ -25,3 +25,5 @@ serde_json = "1"
 rusqlite = { version = "0.38.0", features = ["bundled"] }
 rusqlite_migration = "2.4.1"
 chrono = "0.4.44"
+thiserror = "2.0.18"
+rand = "0.10.1"

@@ -1,14 +1,13 @@
 import { SubmitEventHandler, useMemo, useState } from "react";
 import { useModalStore } from "../../../stores/modal-store";
-import { useMovements } from "../../../stores/movements-store";
 import { formatCurrency } from "../../../utils/format-currency";
 import { GroupWithMovements, UpdateGroup } from "../../../definitions/groups";
-import { useGroupActions } from "../../../stores/groups-stores";
 import { MOV_TYPE_CONFIG } from "../../../definitions/consts";
+import { useGlobalStore, useMovements } from "../../../stores/global-data-store";
 
 export function EditGroupModal({ group }: { group: GroupWithMovements }) {
   const close = useModalStore((s) => s.close);
-  const { updateGroup } = useGroupActions();
+  const updateGroup = useGlobalStore((state) => state.updateGroup);
   const movements = useMovements();
 
   // Inicializar con los movimientos ya asociados al grupo

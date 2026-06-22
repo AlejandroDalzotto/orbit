@@ -4,11 +4,11 @@ import { Pencil, Trash2 } from "lucide-react";
 import { ViewLayout } from "../layouts/view-layout";
 import { Category } from "../definitions/categories";
 import { useModalStore } from "../stores/modal-store";
-import { useCategories } from "../stores/categories-store";
 import { AddCategoryModal } from "../components/modals/categories/add-category-modal";
 import { SearchInput } from "../components/search-input";
 import { DeleteCategoryModal } from "../components/modals/categories/delete-category-modal";
 import { EditCategoryModal } from "../components/modals/categories/edit-category-modal";
+import { useCategories } from "../stores/global-data-store";
 
 const CategoryItem = ({ category }: { category: Category }) => {
   const open = useModalStore((state) => state.open);

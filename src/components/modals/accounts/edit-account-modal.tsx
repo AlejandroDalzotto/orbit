@@ -2,11 +2,11 @@ import { SubmitEventHandler } from "react";
 import { useModalStore } from "../../../stores/modal-store";
 import type { Account, AccountType, UpdateAccount } from "../../../definitions/accounts";
 import { AVAILABLE_ACCOUNT_TYPES } from "../../../definitions/consts";
-import { useAccountActions } from "../../../stores/accounts-store";
+import { useGlobalStore } from "../../../stores/global-data-store";
 
 export function EditAccountModal({ account }: { account: Account }) {
   const close = useModalStore((state) => state.close);
-  const { updateAccount } = useAccountActions();
+  const updateAccount = useGlobalStore((state) => state.updateAccount);
 
   const handler: SubmitEventHandler = async (e) => {
     e.preventDefault();

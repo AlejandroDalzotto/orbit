@@ -1,15 +1,11 @@
 import { SubmitEventHandler } from "react";
-import { useAccountActions } from "../../../stores/accounts-store";
-import { useCategories, useCategoryActions } from "../../../stores/categories-store";
 import { useModalStore } from "../../../stores/modal-store";
-import { useMovementActions } from "../../../stores/movements-store";
 import { Currency, Movement, MovementType, UpdateMovement } from "../../../definitions/movements";
+import { useCategories, useGlobalStore } from "../../../stores/global-data-store";
 
 export function EditMovementModal({ movement }: { movement: Movement }) {
   const close = useModalStore((s) => s.close);
-  const { updateMovement } = useMovementActions();
-  const { initialize: initializeCategories } = useCategoryActions();
-  const { initialize: initializeAccounts } = useAccountActions();
+  const updateMovement = useGlobalStore((state) => state.updateMovement);
   const categories = useCategories();
 
   const handler: SubmitEventHandler = async (e) => {
@@ -36,12 +32,6 @@ export function EditMovementModal({ movement }: { movement: Movement }) {
 
     try {
       await updateMovement(movement.id, updatedEntry);
-
-      if (category_id) {
-        await initializeCategories();
-      }
-
-      await initializeAccounts();
 
       close();
     } catch (error) {

@@ -8,8 +8,8 @@ import { EditAccountModal } from "../components/modals/accounts/edit-account-mod
 import { DeleteAccountModal } from "../components/modals/accounts/delete-account-modal";
 import AccountDetailsModal from "../components/modals/accounts/account-details-modal";
 import { Account } from "../definitions/accounts";
-import { useAccounts } from "../stores/accounts-store";
 import { SearchInput } from "../components/search-input";
+import { useAccounts } from "../stores/global-data-store";
 
 const AccountItem = ({ account }: { account: Account }) => {
   const open = useModalStore((state) => state.open);

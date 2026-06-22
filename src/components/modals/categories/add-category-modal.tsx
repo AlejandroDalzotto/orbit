@@ -1,16 +1,15 @@
 import { SubmitEventHandler } from "react";
-import { useCategoryActions } from "../../../stores/categories-store";
 import { useModalStore } from "../../../stores/modal-store";
+import { useGlobalStore } from "../../../stores/global-data-store";
 
 export function AddCategoryModal() {
   const close = useModalStore((state) => state.close);
-  const { addCategory } = useCategoryActions();
+  const addCategory = useGlobalStore((state) => state.addCategory);
 
   const handler: SubmitEventHandler = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const name = formData.get("name") as string;
-    console.log({ name });
     await addCategory(name);
     close();
   };

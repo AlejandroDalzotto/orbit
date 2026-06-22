@@ -1,188 +1,299 @@
-import { useMemo, useState } from "react";
-import { Eye, Layers, List, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { useEffect, useMemo } from "react";
+import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { ViewLayout } from "../layouts/view-layout";
 import { useModalStore } from "../stores/modal-store";
 import { formatCurrency } from "../utils/format-currency";
-import { Movement } from "../definitions/movements";
-import { useMovements } from "../stores/movements-store";
+import type { Movement, MovementTypeFilter } from "../definitions/movements";
+import { useGlobalStore, useGroups, useMovements } from "../stores/global-data-store";
 import { AddMovementModal } from "../components/modals/movements/add-movement-modal";
-import { MovementDetailsModal } from "../components/modals/movements/movement-details-modal";
-import { EditMovementModal } from "../components/modals/movements/edit-movement-modal";
-import { DeleteMovementModal } from "../components/modals/movements/delete-movement-modal";
+import { formatDate } from "../utils/format-date";
 import { MOV_TYPE_CONFIG } from "../definitions/consts";
-import { GroupCard } from "../components/group-card";
+import { CategorySelect, PeriodSelector, SortControl } from "../components/list-controls";
 import { AddGroupModal } from "../components/modals/groups/add-group-modal";
-import { useGroups } from "../stores/groups-stores";
 
-const MovementItem = ({ movement }: { movement: Movement }) => {
-  const open = useModalStore((state) => state.open);
-  const config = MOV_TYPE_CONFIG[movement.mov_type];
-  const date = new Date(movement.date).toLocaleDateString("es-AR");
-
-  return (
-    <div className="bg-white shadow rounded px-4 py-3 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3 min-w-0">
-        <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${config.color}`}>
-          {config.icon}
-          {config.label}
-        </span>
-        <div className="min-w-0">
-          <p className="font-medium text-neutral-800 truncate">{movement.details}</p>
-          <p className="text-xs text-neutral-400">{date}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 shrink-0">
-        <p className="font-semibold text-neutral-900 text-sm">{formatCurrency(movement.original_amount, movement.currency)}</p>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => open(<MovementDetailsModal movement={movement} />)}
-            className="p-1.5 rounded text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
-            title="Ver detalles"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => open(<EditMovementModal movement={movement} />)}
-            className="p-1.5 rounded text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-            title="Editar"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => open(<DeleteMovementModal movement={movement} />)}
-            className="p-1.5 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-            title="Eliminar"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+const FILTERS: Readonly<{ value: MovementTypeFilter; label: string }>[] = [
+  { value: "all", label: "Todos" },
+  { value: "income", label: "Ingresos" },
+  { value: "expense", label: "Egresos" },
+  { value: "transfer", label: "Transferencias" },
+];
 
 export default function MovementsView() {
   const movements = useMovements();
   const open = useModalStore((s) => s.open);
-  const [query, setQuery] = useState("");
   const groups = useGroups();
+  const totalMovements = useGlobalStore((state) => state.totalMovements);
 
-  const stats = useMemo(() => {
-    return movements.reduce(
-      (acc, m) => {
-        if (m.mov_type === "income") acc.income += m.ars_amount;
-        if (m.mov_type === "expense") acc.expense += m.ars_amount;
-        return acc;
-      },
-      { income: 0, expense: 0 },
-    );
-  }, [movements]);
+  const filters = useGlobalStore((state) => state.filters);
+  const fetchMovements = useGlobalStore((state) => state.initMovements);
 
-  const net = stats.income - stats.expense;
+  const stats = useGlobalStore((state) => state.stats);
+  const setStats = useGlobalStore((state) => state.setStats);
 
-  // filter movements by input query
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return movements;
-    return movements.filter((m) => m.details.toLowerCase().includes(q));
-  }, [movements, query]);
+  useEffect(() => {
+    const loadMovements = async () => {
+      await Promise.all([fetchMovements(), setStats()]);
+    };
+    loadMovements();
+  }, [filters]);
 
+  const { period, groupId, categoryId, limit, offset, type, sort } = filters;
+  const goToNextPage = useGlobalStore((state) => state.goToNextPage);
+  const goToPreviousPage = useGlobalStore((state) => state.goToPreviousPage);
+  const filterByQuery = useGlobalStore((state) => state.filterByQuery);
+  const filterByGroupId = useGlobalStore((state) => state.filterByGroupId);
+  const changePeriod = useGlobalStore((state) => state.changePeriod);
+  const changeType = useGlobalStore((state) => state.changeType);
+
+  // TODO: retrieve already sorted groups from the database to avoid sorting in memory.
   // Grupos ordenados por cantidad de movimientos desc
   const sortedGroups = useMemo(() => [...groups].sort((a, b) => b.movements.length - a.movements.length), [groups]);
 
+  const isTherePreviousPage = offset > 0;
+  const isThereNextPage = offset + limit < totalMovements;
+
   return (
     <ViewLayout>
-      <div className="w-full h-full grid grid-cols-[1fr_220px] gap-x-4">
-        {/* ── Columna principal: movimientos ── */}
-        <div className="grid grid-rows-[auto_1fr] gap-y-3 min-h-0">
-          {/* Header */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <List className="w-5 h-5 text-neutral-700" />
-                  Movimientos
-                </h2>
-                <p className="text-sm text-neutral-500">Registros de ingresos, egresos y transferencias.</p>
+      <section className="h-full flex flex-col px-4 xl:px-0 xl:container mx-auto">
+        <header className="flex justify-between items-start my-8">
+          <div className="justify-between items-center">
+            <p className="text-neutral-500 text-xs uppercase font-mono tracking-wider">Orbit / Finanzas</p>
+            <h1 className="text-5xl text-neutral-50">Movimientos</h1>
+          </div>
+          {/* placeholder para los periodos */}
+          <PeriodSelector value={period ?? "1m"} onChange={changePeriod} />
+        </header>
+        <div className="grid flex-1 min-h-0 grid-cols-[200px_minmax(0,1fr)_200px] gap-x-4 w-full relative">
+          {/* groups */}
+          <aside className="order-1">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] uppercase tracking-[0.28em] text-[oklch(0.5_0_0)]">Grupos</p>
+              <button
+                onClick={() => open(<AddGroupModal />)}
+                aria-label="Nuevo grupo"
+                title="Nuevo grupo"
+                className="group inline-flex size-7 items-center justify-center rounded-full bg-[oklch(0.97_0_0)] text-[oklch(0.15_0_0)] transition-transform hover:scale-110 active:scale-95"
+              >
+                <Plus className="size-4 transition-transform group-hover:rotate-90" strokeWidth={2} />
+              </button>
+            </div>
+            <nav className="mt-5 flex flex-col">
+              <GroupButton
+                label="Todos"
+                count={movements.length}
+                active={groupId === null || groupId === undefined}
+                onClick={() => filterByGroupId(null)}
+              />
+              {sortedGroups.map((g) => (
+                <GroupButton
+                  key={g.id}
+                  label={g.name}
+                  description={g.description}
+                  count={g.movements.length}
+                  active={g.id === groupId}
+                  onClick={() => filterByGroupId(g.id)}
+                />
+              ))}
+            </nav>
+          </aside>
+
+          {/* movements list */}
+          <main className="order-2 flex flex-col min-h-0 h-full relative">
+            {/* search */}
+            <div className="group relative mb-5">
+              <Search
+                className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[oklch(0.5_0_0)] transition-colors group-focus-within:text-[oklch(0.8_0_0)]"
+                strokeWidth={2}
+              />
+              <input
+                type="text"
+                placeholder="Buscar movimientos…"
+                aria-label="Buscar movimientos"
+                onChange={(e) => filterByQuery(e.target.value)}
+                className="w-full rounded-full border border-[oklch(1_0_0/0.08)] bg-[oklch(1_0_0/0.03)] py-2.5 pl-11 pr-4 text-sm text-[oklch(0.92_0_0)] outline-none transition-all placeholder:text-[oklch(0.45_0_0)] hover:border-[oklch(1_0_0/0.14)] focus:border-[oklch(1_0_0/0.22)] focus:bg-[oklch(1_0_0/0.05)]"
+              />
+            </div>
+
+            {/* controls */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap gap-1">
+                {FILTERS.map((f) => {
+                  const active = type === f.value;
+                  return (
+                    <button
+                      key={f.value}
+                      onClick={() => changeType(f.value)}
+                      className={`rounded-full px-3.5 py-1.5 text-xs transition-colors ${
+                        active ? "bg-[oklch(1_0_0/0.1)] text-[oklch(0.95_0_0)]" : "text-[oklch(0.55_0_0)] hover:text-[oklch(0.8_0_0)]"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  );
+                })}
               </div>
               <button
                 onClick={() => open(<AddMovementModal />)}
-                className="px-3 py-1 bg-blue-500 text-white text-sm cursor-pointer rounded hover:bg-blue-600"
+                className="group inline-flex items-center gap-2 rounded-full bg-[oklch(0.97_0_0)] p-2 xl:py-2 xl:pl-3 xl:pr-4 text-sm font-medium text-[oklch(0.15_0_0)] transition-transform hover:scale-[1.02] active:scale-95"
               >
-                Añadir movimiento
+                <Plus className="size-4 transition-transform group-hover:rotate-90" strokeWidth={2} />
+                <p className="xl:block hidden">Nuevo Registro</p>
               </button>
             </div>
-
-            {/* Stats */}
-            <div className="bg-white shadow rounded px-4 py-3 grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs text-neutral-500">Ingresos</p>
-                <p className={`text-lg font-semibold ${MOV_TYPE_CONFIG.income.statColor}`}>{formatCurrency(stats.income, "ARS")}</p>
-              </div>
-              <div>
-                <p className="text-xs text-neutral-500">Egresos</p>
-                <p className={`text-lg font-semibold ${MOV_TYPE_CONFIG.expense.statColor}`}>{formatCurrency(stats.expense, "ARS")}</p>
-              </div>
-              <div>
-                <p className="text-xs text-neutral-500">Neto</p>
-                <p className={`text-lg font-semibold ${net >= 0 ? MOV_TYPE_CONFIG.income.statColor : MOV_TYPE_CONFIG.expense.statColor}`}>
-                  {formatCurrency(net, "ARS")}
-                </p>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-1">
+                <CategorySelect categoryId={categoryId} />
+                <span className="h-4 w-px bg-[oklch(1_0_0/0.1)]" />
+                <SortControl sortField={sort?.field ?? "date"} sortOrder={sort?.order ?? "DESC"} />
               </div>
             </div>
 
-            {/* Search */}
-            <div className="relative max-w-md">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="w-4 h-4 text-neutral-400" />
-              </span>
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar por descripción..."
-                className="pl-10 pr-3 py-1.5 text-sm border rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-200"
-              />
+            {/* list */}
+            <div className="mt-7 flex-1 min-h-0 overflow-y-auto pr-1 [scrollbar-width:thin]">
+              <ul>
+                {/*first 30 items to test */}
+                {movements.map((m) => (
+                  <MovementRow key={m.id} m={m} category={m.category_id?.toString() ?? "Sin categoría"} />
+                ))}
+              </ul>
+              {movements.length === 0 && <p className="py-16 text-center text-sm text-[oklch(0.5_0_0)]">Sin movimientos para este filtro.</p>}
             </div>
-          </div>
 
-          {/* Lista */}
-          <div className="space-y-2 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
-            {filtered.length === 0 ? (
-              <div className="bg-white shadow rounded p-4 text-sm text-neutral-500">
-                {query ? "No se encontraron movimientos que coincidan." : "No hay movimientos registrados."}
+            {/* pagination controls */}
+            {totalMovements > 0 ? (
+              <div className="flex justify-between items-center-safe gap-4 mt-4">
+                <button
+                  disabled={!isTherePreviousPage}
+                  onClick={goToPreviousPage}
+                  className="group flex items-center gap-x-1 rounded border border-[oklch(1_0_0/0.08)] hover:bg-[oklch(1_0_0/0.03)] py-2.5 pl-2 pr-4 text-sm font-mono text-[oklch(0.92_0_0)] outline-none transition-all hover:border-[oklch(0.96_0_0)] not-disabled:cursor-pointer disabled:pointer-events-none disabled:text-[oklch(1_0_0/0.08)]"
+                >
+                  <ChevronLeft
+                    className="size-4 text-[oklch(0.5_0_0)] group-disabled:text-[oklch(1_0_0/0.08)] transition-colors group-hover:text-[oklch(0.96_0_0)]"
+                    strokeWidth={2}
+                  />
+                  <p className="text-[10px] group-disabled:text-[oklch(1_0_0/0.08)] transition-colors xl:text-sm uppercase tracking-[0.22em] text-[oklch(0.55_0_0)] group-hover:text-[oklch(0.96_0_0)]">
+                    anterior
+                  </p>
+                </button>
+                <button
+                  disabled={!isThereNextPage}
+                  onClick={goToNextPage}
+                  className="group flex items-center gap-x-1 rounded border border-[oklch(1_0_0/0.08)] hover:bg-[oklch(1_0_0/0.03)] py-2.5 pl-4 pr-2 text-sm font-mono text-[oklch(0.92_0_0)] outline-none transition-all hover:border-[oklch(0.96_0_0)] not-disabled:cursor-pointer disabled:pointer-events-none disabled:text-[oklch(1_0_0/0.08)]"
+                >
+                  <p className="text-[10px] group-disabled:text-[oklch(1_0_0/0.08)] transition-colors xl:text-sm uppercase tracking-[0.22em] text-[oklch(0.55_0_0)] group-hover:text-[oklch(0.96_0_0)]">
+                    siguiente
+                  </p>
+                  <ChevronRight
+                    className="size-4 text-[oklch(0.5_0_0)] group-disabled:text-[oklch(1_0_0/0.08)] transition-colors group-hover:text-[oklch(0.96_0_0)]"
+                    strokeWidth={2}
+                  />
+                </button>
               </div>
-            ) : (
-              filtered.map((movement) => <MovementItem key={movement.id} movement={movement} />)
-            )}
-          </div>
+            ) : null}
+          </main>
+
+          {/* insights panel */}
+          <aside className="order-3 flex flex-col gap-y-8">
+            <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl bg-[oklch(1_0_0/0.06)]">
+              <StatCell label="Ingresos" value={formatCurrency(stats.totalIncome)} accent="oklch(0.78 0.13 155)" />
+              <StatCell label="Egresos" value={formatCurrency(stats.totalExpense)} accent="oklch(0.62 0.06 30)" />
+              <StatCell label="Neto" value={formatCurrency(stats.totalNet)} accent="oklch(0.85 0 0)" emphasis />
+            </div>
+
+            {/*<PeriodPulse movements={items} />*/}
+
+            {/*<GroupHeatmap membership={membership} totalItems={items.length} />*/}
+          </aside>
         </div>
+      </section>
+    </ViewLayout>
+  );
+}
 
-        {/* ── Columna lateral: grupos ── */}
-        <div className="grid grid-rows-[auto_1fr] gap-y-3 min-h-0">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-neutral-700 flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-neutral-500" />
-              Grupos
-            </h3>
-            <button
-              onClick={() => open(<AddGroupModal movements={movements} />)}
-              className="p-1 rounded text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-              title="Nuevo grupo"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
+function GroupButton({
+  label,
+  description,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  description?: string | null;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`group relative flex items-start justify-between gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
+        active ? "bg-[oklch(1_0_0/0.05)]" : "hover:bg-[oklch(1_0_0/0.03)]"
+      }`}
+    >
+      <span className={`absolute left-0 top-1/2 h-5 w-px -translate-y-1/2 transition-all ${active ? "bg-[oklch(0.7_0.13_85)]" : "bg-transparent"}`} />
+      <span className="min-w-0">
+        <span className={`block text-sm ${active ? "text-[oklch(0.96_0_0)]" : "text-[oklch(0.72_0_0)]"}`}>{label}</span>
+        {description && <span className="mt-0.5 block truncate text-[11px] text-[oklch(0.45_0_0)]">{description}</span>}
+      </span>
+      <span className="mt-0.5 shrink-0 font-mono text-[11px] text-[oklch(0.5_0_0)]">{count}</span>
+    </button>
+  );
+}
 
-          <div className="space-y-2 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
-            {sortedGroups.length === 0 ? (
-              <div className="bg-white shadow rounded p-3 text-xs text-neutral-400">No hay grupos creados.</div>
-            ) : (
-              sortedGroups.map((group) => <GroupCard key={group.id} group={group} />)
-            )}
-          </div>
+function StatCell({ label, value, accent, emphasis }: { label: string; value: string; accent: string; emphasis?: boolean }) {
+  return (
+    <div className="bg-[oklch(0.16_0_0)] px-4 py-3 xl:px-5 xl:py-4">
+      <div className="flex items-center gap-2">
+        <span className="size-1.5 rounded-full" style={{ background: accent }} />
+        <span className="text-[10px] xl:text-sm uppercase tracking-[0.22em] text-[oklch(0.55_0_0)]">{label}</span>
+      </div>
+      <p className={`mt-2 font-mono tracking-tight ${emphasis ? "text-xl xl:text-2xl text-[oklch(0.97_0_0)]" : "xl:text-lg text-[oklch(0.75_0_0)]"}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function MovementRow({ m, category }: { m: Movement; category?: string }) {
+  const sign = m.mov_type === "income" ? "+" : m.mov_type === "expense" ? "−" : "";
+  const amountColor =
+    m.mov_type === "income" ? "text-[oklch(0.82_0.13_155)]" : m.mov_type === "expense" ? "text-[oklch(0.82_0_0)]" : "text-[oklch(0.7_0_0)]";
+
+  return (
+    <li className="group grid grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-[oklch(1_0_0/0.05)] py-4 transition-colors hover:bg-[oklch(1_0_0/0.02)]">
+      {/* date column */}
+      <div className="w-14 text-center">
+        <p className="font-mono text-xs uppercase text-[oklch(0.6_0_0)]">{formatDate(m.date)}</p>
+      </div>
+
+      {/* details column */}
+      <div className="min-w-0">
+        <p className="truncate text-[15px] text-[oklch(0.92_0_0)]">{m.details}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-[oklch(0.5_0_0)]">
+          <span className="uppercase tracking-[0.16em]">{MOV_TYPE_CONFIG[m.mov_type].label}</span>
+          {category && (
+            <>
+              <span className="text-[oklch(0.35_0_0)]">·</span>
+              <span>{category}</span>
+            </>
+          )}
+          {m.rate_type && (
+            <>
+              <span className="text-[oklch(0.35_0_0)]">·</span>
+              <span className="font-mono uppercase">{m.rate_type}</span>
+            </>
+          )}
         </div>
       </div>
-    </ViewLayout>
+
+      {/* amount column */}
+      <div className="text-right">
+        <p className={`font-mono text-[15px] tabular-nums ${amountColor}`}>
+          {sign}
+          {formatCurrency(m.ars_amount)}
+        </p>
+        {m.currency === "USD" && <p className="mt-0.5 font-mono text-[11px] text-[oklch(0.48_0_0)]">{formatCurrency(m.original_amount, "USD")}</p>}
+      </div>
+    </li>
   );
 }

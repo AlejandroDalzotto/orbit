@@ -1,5 +1,5 @@
 import type { Account } from "../../../definitions/accounts";
-import { useAccountActions } from "../../../stores/accounts-store";
+import { useGlobalStore } from "../../../stores/global-data-store";
 import { useModalStore } from "../../../stores/modal-store";
 
 /**
@@ -7,7 +7,7 @@ import { useModalStore } from "../../../stores/modal-store";
  */
 export function DeleteAccountModal({ account }: { account: Account }) {
   const close = useModalStore((state) => state.close);
-  const { deleteAccount } = useAccountActions();
+  const deleteAccount = useGlobalStore((state) => state.deleteAccount);
 
   const handler = async (account: Account) => {
     await deleteAccount(account.id);
