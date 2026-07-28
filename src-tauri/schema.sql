@@ -1,292 +1,426 @@
--- =============================================================
---  Personal Finance App — Database Schema
---  Conventions:
---    - Monetary values stored as INTEGER (cents / centavos)
---    - Dates stored as TEXT in ISO 8601 format (YYYY-MM-DD)
---    - created_at as TEXT datetime
--- =============================================================
-
+-- ============================================================================
+-- PRAGMAS & SETUP
+-- ============================================================================
 PRAGMA foreign_keys = ON;
+PRAGMA journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
 
--- -------------------------------------------------------------
---  ACCOUNTS
---  No balance column: derived via balance_snapshots + movements
--- -------------------------------------------------------------
-CREATE TABLE accounts (
-    id         INTEGER PRIMARY KEY NOT NULL,
-    name       TEXT    NOT NULL,
-    acc_type   TEXT    NOT NULL,
-    currency   TEXT    NOT NULL DEFAULT 'ARS',
-    notes      TEXT,
-    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
-);
+-- ============================================================================
+-- CURRENCIES
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS currencies (
+    code            TEXT PRIMARY KEY,
+    name            TEXT NOT NULL,
+    symbol          TEXT NOT NULL,
+    decimal_places  INTEGER NOT NULL DEFAULT 2 CHECK(decimal_places BETWEEN 0 AND 8),
+    is_active       INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1))
+) STRICT;
 
--- -------------------------------------------------------------
---  BALANCE SNAPSHOTS
---  Anchor points for account balance calculation.
---  "On date X, account Y had balance Z."
---  Saldo actual = último snapshot + SUM de movimientos posteriores.
--- -------------------------------------------------------------
-CREATE TABLE balance_snapshots (
-    id            INTEGER PRIMARY KEY NOT NULL,
-    account_id    INTEGER NOT NULL,
-    balance       INTEGER NOT NULL, -- en centavos
-    snapshot_date TEXT    NOT NULL,
-    created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (account_id) REFERENCES accounts (id)
-);
+-- ============================================================================
+-- ACCOUNTS
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS accounts (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT NOT NULL,
+    type            TEXT NOT NULL CHECK(type IN (
+                        'cash', 'checking', 'savings', 'credit_card',
+                        'investment', 'loan', 'digital_wallet', 'other'
+                    )),
+    currency_code   TEXT NOT NULL REFERENCES currencies(code),
+    description     TEXT,
+    is_active       INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+) STRICT;
 
--- -------------------------------------------------------------
---  CATEGORIES
---  Completamente administradas por el usuario, sin categorías fijas.
--- -------------------------------------------------------------
-CREATE TABLE categories (
-    id         INTEGER PRIMARY KEY NOT NULL,
-    name       TEXT NOT NULL,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+CREATE INDEX IF NOT EXISTS idx_accounts_active ON accounts(is_active) WHERE is_active = 1;
 
--- -------------------------------------------------------------
---  MOVEMENTS
---  Tres tipos posibles: income, expense, transfer.
---  Las transferencias internas se vinculan mediante la tabla transfers.
---
---  Multi-moneda:
---    - original_amount: monto en la moneda original (centavos)
---    - ars_amount:      monto convertido a ARS al momento del registro (centavos)
---    - exchange_rate:   tasa usada, NULL si currency = 'ARS'
---    - rate_type:       cotización usada ('blue', 'oficial', 'mep', etc.), NULL si ARS
---
---  Para movimientos en ARS: original_amount == ars_amount, exchange_rate y rate_type NULL.
---  Todos los gráficos y reportes usan ars_amount.
--- -------------------------------------------------------------
-CREATE TABLE movements (
-    id              INTEGER PRIMARY KEY NOT NULL,
-    details         TEXT    NOT NULL,
-    date            TEXT    NOT NULL,
-    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
-    mov_type        TEXT    NOT NULL CHECK (mov_type IN ('income', 'expense', 'transfer')),
-    currency        TEXT    NOT NULL CHECK (currency IN ('ARS', 'USD')) DEFAULT 'ARS',
-    original_amount INTEGER NOT NULL, -- en centavos, moneda original
-    -- NOTE: 'ars_amount' is the normalized reference amount used across all analytics, charts and reports.
-    -- All movements are stored in their original currency (original_amount), but converted to ARS at
-    -- registration time so that multi-currency data can be aggregated and compared consistently.
-    -- Renaming this field to something like 'normalized_amount' or 'reference_amount' would better
-    -- reflect its purpose, but requires a migration. Consider renaming before v1.0 to something like "base_amount".
-    ars_amount      INTEGER NOT NULL, -- en centavos, convertido a ARS al registrar
-    exchange_rate   INTEGER,          -- tasa de conversión, NULL si ARS
-    rate_type       TEXT    CHECK (rate_type IN ('blue', 'oficial', 'mep', 'ccl', 'cripto', NULL)),
-    account_id      INTEGER NOT NULL,
-    category_id     INTEGER,
-    FOREIGN KEY (account_id)  REFERENCES accounts    (id),
-    FOREIGN KEY (category_id) REFERENCES categories  (id) ON DELETE SET NULL
-);
-
--- -------------------------------------------------------------
---  TRANSFERS
---  Vincula los dos movimientos de una transferencia interna.
---  debit_mov_id:  movimiento de egreso en la cuenta origen
---  credit_mov_id: movimiento de ingreso en la cuenta destino
--- -------------------------------------------------------------
--- CREATE TABLE transfers (
---     id             INTEGER PRIMARY KEY NOT NULL,
---     debit_mov_id   INTEGER NOT NULL UNIQUE,
---     credit_mov_id  INTEGER NOT NULL UNIQUE,
---     created_at     TEXT    NOT NULL DEFAULT (datetime('now')),
---     FOREIGN KEY (debit_mov_id)  REFERENCES movements (id),
---     FOREIGN KEY (credit_mov_id) REFERENCES movements (id)
--- );
-
--- -------------------------------------------------------------
---  GROUPS
---  Agrupaciones manuales de movimientos.
--- -------------------------------------------------------------
-CREATE TABLE groups (
-    id          INTEGER PRIMARY KEY NOT NULL,
+-- ============================================================================
+-- CATEGORIES (Hierarchical, User-Defined)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS categories (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
     name        TEXT NOT NULL,
+    type        TEXT NOT NULL CHECK(type IN ('income', 'expense', 'both')),
+    parent_id   INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+    is_active   INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1)),
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    CHECK(parent_id != id)
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
+CREATE INDEX IF NOT EXISTS idx_categories_active ON categories(is_active) WHERE is_active = 1;
+
+-- ============================================================================
+-- TAGS
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS tags (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE,
+    color       TEXT,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+) STRICT;
+
+-- ============================================================================
+-- ITEMS (Product/Service catalog for price tracking)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS items (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    brand       TEXT,
+    is_archived INTEGER NOT NULL DEFAULT 0, -- 0 = Activo, 1 = Archivado (Soft Delete)
     description TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
-);
+) STRICT;
 
--- Relación N:M entre movements y groups
-CREATE TABLE movements_groups (
-    id       INTEGER PRIMARY KEY NOT NULL,
-    mov_id   INTEGER NOT NULL,
-    group_id INTEGER NOT NULL,
-    FOREIGN KEY (mov_id)   REFERENCES movements (id) ON DELETE CASCADE,
-    FOREIGN KEY (group_id) REFERENCES groups    (id) ON DELETE CASCADE,
-    UNIQUE (mov_id, group_id)
-);
+-- ============================================================================
+-- Shops
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS shops (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT NOT NULL,
+    address         TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+) STRICT;
 
--- -------------------------------------------------------------
---  ITEMS & STORES
---  Para registrar el detalle de compras (qué se compró, dónde).
--- -------------------------------------------------------------
+-- ============================================================================
+-- movements
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS movements (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id          INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+    type                TEXT NOT NULL CHECK(type IN ('income', 'expense', 'transfer_out', 'transfer_in')),
+    amount              INTEGER NOT NULL CHECK(amount > 0),
+    currency_code       TEXT NOT NULL REFERENCES currencies(code),
+    date                TEXT NOT NULL,
+    description         TEXT NOT NULL DEFAULT '',
+    notes               TEXT,
+    category_id         INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+    shop_id             INTEGER REFERENCES shops(id) ON DELETE SET NULL,
+    transfer_group_id   TEXT,
+    created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+    CHECK (shop_id IS NULL OR type = 'expense')
+) STRICT;
 
-CREATE TABLE items (
-    id         INTEGER PRIMARY KEY NOT NULL,
-    name       TEXT NOT NULL,
-    brand      TEXT,
-    is_archived INTEGER NOT NULL DEFAULT 0, -- 0 = Activo, 1 = Archivado (Soft Delete)
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+CREATE INDEX IF NOT EXISTS idx_movements_account_date ON movements(account_id, date DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_movements_date ON movements(date);
+CREATE INDEX IF NOT EXISTS idx_movements_category ON movements(category_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_movements_transfer_group ON movements(transfer_group_id) WHERE transfer_group_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_movements_pure ON movements(account_id, date DESC) WHERE transfer_group_id IS NULL;
+CREATE INDEX IF NOT EXISTS idx_movements_shop ON movements(shop_id) WHERE shop_id IS NOT NULL;
 
-CREATE TABLE stores (
-    id         INTEGER PRIMARY KEY NOT NULL,
-    name       TEXT NOT NULL,
-    color      TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+-- ============================================================================
+-- movement ITEMS (Many-to-Many: movements <> items)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS purchases (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    movement_id  INTEGER NOT NULL REFERENCES movements(id) ON DELETE CASCADE,
+    item_id         INTEGER NOT NULL REFERENCES items(id) ON DELETE RESTRICT,
+    quantity        REAL NOT NULL DEFAULT 1 CHECK(quantity > 0),
+    unit_price      INTEGER NOT NULL CHECK(unit_price >= 0),
+    total_price     INTEGER GENERATED ALWAYS AS (CAST(quantity * unit_price AS INTEGER)) STORED,
+    notes           TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+) STRICT;
 
-CREATE TABLE purchases (
-    id         INTEGER PRIMARY KEY NOT NULL,
-    price      INTEGER NOT NULL, -- En centavos, misma moneda que el movimiento
-    quantity   INTEGER NOT NULL DEFAULT 1,
-    mov_id     INTEGER NOT NULL, -- La compra debe estar asociada a un movimiento, sin excepciones.
-    item_id    INTEGER NOT NULL, -- Al igual que el movimiento, el ítem debe existir antes de la compra.
-    store_id   INTEGER,          -- Nullable para soportar ON DELETE SET NULL
-    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+CREATE INDEX IF NOT EXISTS idx_purchases_movement ON purchases(movement_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_item ON purchases(item_id);
 
-    -- Si se borra el movimiento padre, se elimina el desglose automáticamente
-    FOREIGN KEY (mov_id)   REFERENCES movements (id) ON DELETE CASCADE,
+-- ============================================================================
+-- movement TAGS (Many-to-Many)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS movement_tags (
+    movement_id  INTEGER NOT NULL REFERENCES movements(id) ON DELETE CASCADE,
+    tag_id          INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (movement_id, tag_id)
+) WITHOUT ROWID, STRICT;
 
-    -- RESTRICT: No permite borrar físicamente el ítem de la DB si tiene compras asociadas.
-    -- El frontend deberá usar la lógica de archivar (is_archived = 1) para "borrarlo".
-    FOREIGN KEY (item_id)  REFERENCES items (id) ON DELETE RESTRICT,
+-- ============================================================================
+-- ATTACHMENTS
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS attachments (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    movement_id  INTEGER NOT NULL REFERENCES movements(id) ON DELETE CASCADE,
+    file_name       TEXT NOT NULL,
+    file_path       TEXT NOT NULL,
+    file_size       INTEGER,
+    mime_type       TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+) STRICT;
 
-    -- Si se borra la tienda, la compra se mantiene pero queda sin comercio asignado
-    FOREIGN KEY (store_id) REFERENCES stores (id) ON DELETE SET NULL
-);
+CREATE INDEX IF NOT EXISTS idx_attachments_movement ON attachments(movement_id);
 
--- =============================================================
---  INDEXES
--- =============================================================
-CREATE INDEX idx_movements_account_id        ON movements        (account_id);
-CREATE INDEX idx_movements_category_id       ON movements        (category_id);
-CREATE INDEX idx_movements_date              ON movements        (date);
-CREATE INDEX idx_movements_groups_mov        ON movements_groups (mov_id);
-CREATE INDEX idx_movements_groups_group      ON movements_groups (group_id);
-CREATE INDEX idx_purchases_mov               ON purchases        (mov_id);
-CREATE INDEX idx_purchases_item              ON purchases        (item_id);
-CREATE INDEX idx_purchases_store             ON purchases        (store_id);
-CREATE INDEX idx_balance_snapshots_account   ON balance_snapshots (account_id, snapshot_date);
--- CREATE INDEX idx_transfers_debit             ON transfers        (debit_mov_id);
--- CREATE INDEX idx_transfers_credit            ON transfers        (credit_mov_id);
+-- ============================================================================
+-- AUDIT LOG
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS audit_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    table_name  TEXT NOT NULL,
+    record_id   INTEGER NOT NULL,
+    operation   TEXT NOT NULL CHECK(operation IN ('INSERT', 'UPDATE', 'DELETE')),
+    old_data    TEXT,
+    new_data    TEXT,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+) STRICT;
 
--- =============================================================
---  VIEWS
--- =============================================================
+CREATE INDEX IF NOT EXISTS idx_audit_table ON audit_log(table_name, record_id, created_at DESC);
 
--- Detalle completo de un movimiento en una sola consulta
-CREATE VIEW v_movement_details AS
+-- ============================================================================
+-- VIEWS
+-- ============================================================================
+
+CREATE VIEW IF NOT EXISTS v_account_balances AS
 SELECT
-    m.id,
-    m.date,
-    m.details,
-    m.mov_type,
-    m.currency,
-    m.original_amount,
-    m.ars_amount,
-    m.exchange_rate,
-    m.rate_type,
+    a.id AS account_id,
     a.name AS account_name,
-    c.name AS category_name
-FROM movements m
-JOIN  accounts   a ON m.account_id  = a.id
-LEFT JOIN categories c ON m.category_id = c.id;
-
--- Gastos mensuales agrupados por categoría (en ARS)
--- Solo incluye mov_type = 'expense'
-CREATE VIEW v_monthly_expenses_by_category AS
-SELECT
-    strftime('%Y-%m', m.date) AS month,
-    COALESCE(c.name, 'Sin categoría') AS category,
-    SUM(m.ars_amount) AS total_ars
-FROM movements m
-LEFT JOIN categories c ON m.category_id = c.id
-WHERE m.mov_type = 'expense'
-GROUP BY month, c.name;
-
--- Ingresos mensuales agrupados por categoría (en ARS)
-CREATE VIEW v_monthly_income_by_category AS
-SELECT
-    strftime('%Y-%m', m.date) AS month,
-    COALESCE(c.name, 'Sin categoría') AS category,
-    SUM(m.ars_amount) AS total_ars
-FROM movements m
-LEFT JOIN categories c ON m.category_id = c.id
-WHERE m.mov_type = 'income'
-GROUP BY month, c.name;
-
--- Historial de compras con detalle de ítem y tienda
-CREATE VIEW v_purchase_history AS
-SELECT
-    m.date,
-    m.currency,
-    p.price,
-    p.quantity,
-    i.name  AS item_name,
-    i.brand,
-    s.name  AS store_name,
-    m.ars_amount AS movement_total_ars
-FROM purchases p
-JOIN items     i ON p.item_id  = i.id
-JOIN movements m ON p.mov_id   = m.id
-LEFT JOIN stores s ON p.store_id = s.id;
-
--- Balance actual por cuenta
--- Uso: filtrar por account_id en la aplicación.
-CREATE VIEW v_account_balance AS
-SELECT
-    a.id   AS account_id,
-    a.name AS account_name,
-    a.currency,
-    bs.balance + COALESCE(SUM(
-        CASE
-            WHEN m.mov_type = 'income'   THEN  m.ars_amount
-            WHEN m.mov_type = 'expense'  THEN -m.ars_amount
+    a.type AS account_type,
+    a.currency_code,
+    a.is_active,
+    COALESCE(SUM(
+        CASE t.type
+            WHEN 'income'        THEN  t.amount
+            WHEN 'transfer_in'   THEN  t.amount
+            WHEN 'expense'       THEN -t.amount
+            WHEN 'transfer_out'  THEN -t.amount
             ELSE 0
         END
-    ), 0) AS current_balance_ars
+    ), 0) AS balance,
+    COUNT(t.id) AS movement_count
 FROM accounts a
-JOIN balance_snapshots bs
-    ON  bs.account_id    = a.id
-    AND bs.snapshot_date = (
-        SELECT MAX(snapshot_date)
-        FROM balance_snapshots
-        WHERE account_id = a.id
-    )
-LEFT JOIN movements m
-    ON  m.account_id = a.id
-    AND m.date > bs.snapshot_date
-GROUP BY a.id, bs.balance;
+LEFT JOIN movements t ON a.id = t.account_id
+GROUP BY a.id;
 
--- Obtener todas las cuentas con su respectivo balance calculado (respetando valor original de cada moneda).
--- Uso: wallet view, donde se quiere mostrar el balance en la moneda de la cuenta.
-CREATE VIEW v_account_balance_original AS
+CREATE VIEW IF NOT EXISTS v_account_running_balances AS
 SELECT
-    a.id   AS account_id,
-    a.name AS account_name,
-    a.acc_type,
-    a.currency,
-    a.created_at,
-    a.notes,
-    bs.balance + COALESCE(SUM(
-        CASE
-            WHEN m.mov_type = 'income'   THEN  m.original_amount
-            WHEN m.mov_type = 'expense'  THEN -m.original_amount
+    t.id,
+    t.account_id,
+    t.type,
+    t.amount,
+    t.currency_code,
+    t.date,
+    t.description,
+    t.category_id,
+    t.transfer_group_id,
+    t.created_at,
+    SUM(
+        CASE t.type
+            WHEN 'income'        THEN  t.amount
+            WHEN 'transfer_in'   THEN  t.amount
+            WHEN 'expense'       THEN -t.amount
+            WHEN 'transfer_out'  THEN -t.amount
             ELSE 0
         END
-    ), 0) AS current_balance_original
-FROM accounts a
-JOIN balance_snapshots bs
-    ON  bs.account_id    = a.id
-    AND bs.snapshot_date = (
-        SELECT MAX(snapshot_date)
-        FROM balance_snapshots
-        WHERE account_id = a.id
-    )
-LEFT JOIN movements m
-    ON  m.account_id = a.id
-    AND m.date > bs.snapshot_date
-GROUP BY a.id, bs.balance;
+    ) OVER (
+        PARTITION BY t.account_id
+        ORDER BY t.date, t.datetime, t.id
+    ) AS running_balance
+FROM movements t
+ORDER BY t.account_id, t.date, t.datetime, t.id;
+
+CREATE VIEW IF NOT EXISTS v_net_worth AS
+SELECT
+    currency_code,
+    SUM(balance) AS total_balance
+FROM v_account_balances
+WHERE is_active = 1
+GROUP BY currency_code;
+
+CREATE VIEW IF NOT EXISTS v_monthly_summary AS
+SELECT
+    strftime('%Y-%m', date) AS month,
+    currency_code,
+    SUM(CASE WHEN type = 'income'  THEN amount ELSE 0 END) AS total_income,
+    SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS total_expenses,
+    SUM(CASE WHEN type = 'income'  THEN amount ELSE -amount END) AS net
+FROM movements
+WHERE transfer_group_id IS NULL
+GROUP BY strftime('%Y-%m', date), currency_code
+ORDER BY month DESC;
+
+CREATE VIEW IF NOT EXISTS v_category_spending AS
+SELECT
+    c.id AS category_id,
+    c.name AS category_name,
+    c.type AS category_type,
+    t.currency_code,
+    strftime('%Y-%m', t.date) AS month,
+    SUM(t.amount) AS total_amount,
+    COUNT(t.id) AS movement_count
+FROM categories c
+JOIN movements t ON c.id = t.category_id
+WHERE t.transfer_group_id IS NULL
+GROUP BY c.id, t.currency_code, strftime('%Y-%m', t.date);
+
+CREATE VIEW IF NOT EXISTS v_transfer_pairs AS
+SELECT
+    t_out.transfer_group_id,
+    t_out.id AS from_movement_id,
+    t_out.account_id AS from_account_id,
+    a_out.name AS from_account_name,
+    t_out.amount AS from_amount,
+    t_out.currency_code AS from_currency,
+    t_in.id AS to_movement_id,
+    t_in.account_id AS to_account_id,
+    a_in.name AS to_account_name,
+    t_in.amount AS to_amount,
+    t_in.currency_code AS to_currency,
+    t_out.date,
+    t_out.description,
+    t_out.created_at,
+    CASE
+        WHEN t_out.currency_code != t_in.currency_code
+        THEN ROUND(CAST(t_out.amount AS REAL) / NULLIF(t_in.amount, 0), 6)
+        ELSE NULL
+    END AS exchange_rate
+FROM movements t_out
+JOIN accounts a_out ON t_out.account_id = a_out.id
+JOIN movements t_in ON t_out.transfer_group_id = t_in.transfer_group_id
+JOIN accounts a_in ON t_in.account_id = a_in.id
+WHERE t_out.type = 'transfer_out'
+  AND t_in.type = 'transfer_in'
+  AND t_out.id < t_in.id;
+
+  CREATE VIEW IF NOT EXISTS v_movement_details AS
+  SELECT
+      t.id,
+      t.account_id,
+      a.name AS account_name,
+      a.type AS account_type,
+      a.currency_code AS account_currency,
+      t.type,
+      t.amount,
+      t.currency_code AS movement_currency,
+      t.date,
+      t.description,
+      t.notes,
+      t.transfer_group_id,
+      t.created_at,
+      c.id AS category_id,
+      c.name AS category_name,
+      s.id AS shop_id,
+      s.name AS shop_name,
+      GROUP_CONCAT(DISTINCT tg.name) AS tags,
+      (SELECT GROUP_CONCAT(i.name, ', ')
+       FROM purchases ti
+       JOIN items i ON ti.item_id = i.id
+       WHERE ti.movement_id = t.id) AS items
+  FROM movements t
+  JOIN accounts a ON t.account_id = a.id
+  LEFT JOIN categories c ON t.category_id = c.id
+  LEFT JOIN shops s ON t.shop_id = s.id
+  LEFT JOIN movement_tags tt ON t.id = tt.movement_id
+  LEFT JOIN tags tg ON tt.tag_id = tg.id
+  GROUP BY t.id
+  ORDER BY t.date DESC, t.id DESC;
+
+-- ============================================================================
+-- TRIGGERS
+-- ============================================================================
+
+CREATE TRIGGER IF NOT EXISTS trg_accounts_updated_at
+AFTER UPDATE ON accounts
+FOR EACH ROW
+BEGIN
+    UPDATE accounts SET updated_at = datetime('now') WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_categories_updated_at
+AFTER UPDATE ON categories
+FOR EACH ROW
+BEGIN
+    UPDATE categories SET updated_at = datetime('now') WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_audit_movements_insert
+AFTER INSERT ON movements
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (table_name, record_id, operation, new_data, created_at)
+    VALUES ('movements', NEW.id, 'INSERT', json_object(
+        'account_id', NEW.account_id,
+        'type', NEW.type,
+        'amount', NEW.amount,
+        'currency_code', NEW.currency_code,
+        'date', NEW.date,
+        'description', NEW.description,
+        'category_id', NEW.category_id,
+        'transfer_group_id', NEW.transfer_group_id
+    ), datetime('now'));
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_audit_movements_update
+AFTER UPDATE ON movements
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (table_name, record_id, operation, old_data, new_data, created_at)
+    VALUES ('movements', NEW.id, 'UPDATE', json_object(
+        'account_id', OLD.account_id,
+        'type', OLD.type,
+        'amount', OLD.amount,
+        'currency_code', OLD.currency_code,
+        'date', OLD.date,
+        'description', OLD.description,
+        'category_id', OLD.category_id,
+        'transfer_group_id', OLD.transfer_group_id
+    ), json_object(
+        'account_id', NEW.account_id,
+        'type', NEW.type,
+        'amount', NEW.amount,
+        'currency_code', NEW.currency_code,
+        'date', NEW.date,
+        'description', NEW.description,
+        'category_id', NEW.category_id,
+        'transfer_group_id', NEW.transfer_group_id
+    ), datetime('now'));
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_audit_movements_delete
+AFTER DELETE ON movements
+FOR EACH ROW
+BEGIN
+    INSERT INTO audit_log (table_name, record_id, operation, old_data, created_at)
+    VALUES ('movements', OLD.id, 'DELETE', json_object(
+        'account_id', OLD.account_id,
+        'type', OLD.type,
+        'amount', OLD.amount,
+        'currency_code', OLD.currency_code,
+        'date', OLD.date,
+        'description', OLD.description,
+        'category_id', OLD.category_id,
+        'transfer_group_id', OLD.transfer_group_id
+    ), datetime('now'));
+END;
+
+-- ============================================================================
+-- FULL-TEXT SEARCH
+-- ============================================================================
+CREATE VIRTUAL TABLE IF NOT EXISTS movements_fts USING fts5(
+    description,
+    notes,
+    content='movements',
+    content_rowid='id'
+);
+
+CREATE TRIGGER IF NOT EXISTS trg_fts_movements_insert
+AFTER INSERT ON movements
+BEGIN
+    INSERT INTO movements_fts (rowid, description, notes)
+    VALUES (NEW.id, NEW.description, COALESCE(NEW.notes, ''));
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_fts_movements_update
+AFTER UPDATE ON movements
+BEGIN
+    INSERT INTO movements_fts (movements_fts, rowid, description, notes)
+    VALUES ('delete', OLD.id, OLD.description, COALESCE(OLD.notes, ''));
+    INSERT INTO movements_fts (rowid, description, notes)
+    VALUES (NEW.id, NEW.description, COALESCE(NEW.notes, ''));
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_fts_movements_delete
+AFTER DELETE ON movements
+BEGIN
+    INSERT INTO movements_fts (movements_fts, rowid, description, notes)
+    VALUES ('delete', OLD.id, OLD.description, COALESCE(OLD.notes, ''));
+END;

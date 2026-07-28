@@ -1,5 +1,5 @@
 use rusqlite::Connection;
-use std::sync::Mutex;
+use std::{fs, sync::Mutex};
 
 use tauri::Manager;
 
@@ -50,34 +50,23 @@ pub fn run() {
             purchases::add_purchase,
         ])
         .setup(|app| {
-            // let db_path = app.path().app_data_dir()?.join("app.db");
+            let app_data_dir = app.path().app_local_data_dir()?;
 
-            let conn = Connection::open_in_memory()?;
+            // Ensure the directory exists (creates all missing parent dirs, no-op if present)
+            fs::create_dir_all(&app_data_dir)?;
 
-            // conn.execute_batch("PRAGMA foreign_keys = ON;")?;
-
-            // MIGRATIONS.to_latest(&mut conn).unwrap();
+            let db_path = app_data_dir.join("app.db");
+            let conn = Connection::open(&db_path)?;
 
             let schema = include_str!("../schema.sql");
-
-            // initialize database with schema.sql
             match conn.execute_batch(schema) {
                 Ok(_) => println!("Base de datos inicializada correctamente"),
                 Err(e) => println!("Error al inicializar la base de datos: {:?}", e),
             }
 
-            // WARNING: this is only used in development to populate with initial data. Do not use in production.
-            // populate with initial data
-            let data = include_str!("../data.sql");
-            match conn.execute_batch(data) {
-                Ok(_) => println!("Datos iniciales cargados correctamente"),
-                Err(e) => println!("Error al cargar datos iniciales: {:?}", e),
-            }
-
             app.manage(AppState {
                 conn: Mutex::new(conn),
             });
-
             Ok(())
         })
         .run(tauri::generate_context!())
