@@ -5,10 +5,14 @@ interface ModalStore {
   modal: React.ReactNode | null;
   open: (content: React.ReactNode) => void;
   close: () => void;
+  shouldDisableEsc: boolean;
+  setShouldDisableEsc: (shouldDisable: boolean) => void;
 }
 
 export const useModalStore = create<ModalStore>((set) => ({
   modal: null,
-  open: (content) => set({ modal: content }),
-  close: () => set({ modal: null }),
+  open: (content) => set({ modal: content, shouldDisableEsc: false }),
+  close: () => set({ modal: null, shouldDisableEsc: false }),
+  shouldDisableEsc: false,
+  setShouldDisableEsc: (shouldDisable) => set({ shouldDisableEsc: shouldDisable }),
 }));
