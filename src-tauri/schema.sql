@@ -1,9 +1,8 @@
 -- ============================================================================
--- PRAGMAS & SETUP
+-- SETUP
 -- ============================================================================
-PRAGMA foreign_keys = ON;
-PRAGMA journal_mode = WAL;
-PRAGMA synchronous = NORMAL;
+-- Connection PRAGMAs and the atomic user_version migration are owned by
+-- database::initialize. Keep this script free of transaction/PRAGMA statements.
 
 -- ============================================================================
 -- CURRENCIES
@@ -15,6 +14,15 @@ CREATE TABLE IF NOT EXISTS currencies (
     decimal_places  INTEGER NOT NULL DEFAULT 2 CHECK(decimal_places BETWEEN 0 AND 8),
     is_active       INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0, 1))
 ) STRICT;
+
+-- Offline defaults; preserve any existing currency metadata during upgrades.
+INSERT INTO currencies (code, name, symbol, decimal_places) VALUES
+    ('ARS', 'Argentine Peso', '$', 2),
+    ('USD', 'US Dollar', '$', 2),
+    ('EUR', 'Euro', '€', 2),
+    ('GBP', 'Pound Sterling', '£', 2),
+    ('JPY', 'Japanese Yen', '¥', 0)
+ON CONFLICT(code) DO NOTHING;
 
 -- ============================================================================
 -- ACCOUNTS
@@ -90,7 +98,9 @@ CREATE TABLE IF NOT EXISTS shops (
 CREATE TABLE IF NOT EXISTS movements (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     account_id          INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
-    type                TEXT NOT NULL CHECK(type IN ('income', 'expense', 'transfer_out', 'transfer_in')),
+    type TEXT NOT NULL CHECK(type IN (
+        'income', 'expense', 'transfer_out', 'transfer_in', 'initial_balance'
+    )),
     amount              INTEGER NOT NULL CHECK(amount > 0),
     currency_code       TEXT NOT NULL REFERENCES currencies(code),
     date                TEXT NOT NULL,
@@ -100,13 +110,16 @@ CREATE TABLE IF NOT EXISTS movements (
     shop_id             INTEGER REFERENCES shops(id) ON DELETE SET NULL,
     transfer_group_id   TEXT,
     created_at          TEXT NOT NULL DEFAULT (datetime('now')),
-    CHECK (shop_id IS NULL OR type = 'expense')
+    CHECK (shop_id IS NULL OR type = 'expense'),
+    CHECK ((type IN ('transfer_out', 'transfer_in')) = (transfer_group_id IS NOT NULL))
 ) STRICT;
 
 CREATE INDEX IF NOT EXISTS idx_movements_account_date ON movements(account_id, date DESC, id DESC);
 CREATE INDEX IF NOT EXISTS idx_movements_date ON movements(date);
 CREATE INDEX IF NOT EXISTS idx_movements_category ON movements(category_id, date DESC);
 CREATE INDEX IF NOT EXISTS idx_movements_transfer_group ON movements(transfer_group_id) WHERE transfer_group_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_movements_transfer_group_type
+    ON movements(transfer_group_id, type) WHERE transfer_group_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_movements_pure ON movements(account_id, date DESC) WHERE transfer_group_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_movements_shop ON movements(shop_id) WHERE shop_id IS NOT NULL;
 
@@ -176,13 +189,17 @@ SELECT
     a.name AS account_name,
     a.type AS account_type,
     a.currency_code,
+    a.description,
     a.is_active,
+    a.created_at,
+    a.updated_at,
     COALESCE(SUM(
         CASE t.type
-            WHEN 'income'        THEN  t.amount
-            WHEN 'transfer_in'   THEN  t.amount
-            WHEN 'expense'       THEN -t.amount
-            WHEN 'transfer_out'  THEN -t.amount
+            WHEN 'income'          THEN  t.amount
+            WHEN 'transfer_in'     THEN  t.amount
+            WHEN 'initial_balance' THEN  t.amount
+            WHEN 'expense'         THEN -t.amount
+            WHEN 'transfer_out'    THEN -t.amount
             ELSE 0
         END
     ), 0) AS balance,
@@ -207,16 +224,17 @@ SELECT
         CASE t.type
             WHEN 'income'        THEN  t.amount
             WHEN 'transfer_in'   THEN  t.amount
+            WHEN 'initial_balance' THEN  t.amount
             WHEN 'expense'       THEN -t.amount
             WHEN 'transfer_out'  THEN -t.amount
             ELSE 0
         END
     ) OVER (
         PARTITION BY t.account_id
-        ORDER BY t.date, t.datetime, t.id
+        ORDER BY t.date, t.created_at, t.id
     ) AS running_balance
 FROM movements t
-ORDER BY t.account_id, t.date, t.datetime, t.id;
+ORDER BY t.account_id, t.date, t.created_at, t.id;
 
 CREATE VIEW IF NOT EXISTS v_net_worth AS
 SELECT
@@ -234,22 +252,22 @@ SELECT
     SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS total_expenses,
     SUM(CASE WHEN type = 'income'  THEN amount ELSE -amount END) AS net
 FROM movements
-WHERE transfer_group_id IS NULL
+WHERE type IN ('income', 'expense') AND transfer_group_id IS NULL
 GROUP BY strftime('%Y-%m', date), currency_code
 ORDER BY month DESC;
 
 CREATE VIEW IF NOT EXISTS v_category_spending AS
 SELECT
     c.id AS category_id,
-    c.name AS category_name,
+    COALESCE(c.name, 'Sin categoría') AS category_name,
     c.type AS category_type,
     t.currency_code,
     strftime('%Y-%m', t.date) AS month,
     SUM(t.amount) AS total_amount,
     COUNT(t.id) AS movement_count
-FROM categories c
-JOIN movements t ON c.id = t.category_id
-WHERE t.transfer_group_id IS NULL
+FROM movements t
+LEFT JOIN categories c ON c.id = t.category_id
+WHERE t.type = 'expense' AND t.transfer_group_id IS NULL
 GROUP BY c.id, t.currency_code, strftime('%Y-%m', t.date);
 
 CREATE VIEW IF NOT EXISTS v_transfer_pairs AS
@@ -278,8 +296,7 @@ JOIN accounts a_out ON t_out.account_id = a_out.id
 JOIN movements t_in ON t_out.transfer_group_id = t_in.transfer_group_id
 JOIN accounts a_in ON t_in.account_id = a_in.id
 WHERE t_out.type = 'transfer_out'
-  AND t_in.type = 'transfer_in'
-  AND t_out.id < t_in.id;
+  AND t_in.type = 'transfer_in';
 
   CREATE VIEW IF NOT EXISTS v_movement_details AS
   SELECT
@@ -317,6 +334,39 @@ WHERE t_out.type = 'transfer_out'
 -- ============================================================================
 -- TRIGGERS
 -- ============================================================================
+
+-- These also enforce the transfer CHECK on unversioned databases whose existing
+-- movements table is intentionally retained rather than destructively rebuilt.
+CREATE TRIGGER IF NOT EXISTS trg_movements_integrity_insert
+BEFORE INSERT ON movements
+BEGIN
+    SELECT RAISE(ABORT, 'transfer type and transfer_group_id must agree')
+    WHERE (NEW.type IN ('transfer_out', 'transfer_in')) != (NEW.transfer_group_id IS NOT NULL);
+    SELECT RAISE(ABORT, 'movement currency must match account currency')
+    WHERE NOT EXISTS (
+        SELECT 1 FROM accounts WHERE id = NEW.account_id AND currency_code = NEW.currency_code
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_movements_integrity_update
+BEFORE UPDATE OF type, transfer_group_id, account_id, currency_code ON movements
+BEGIN
+    SELECT RAISE(ABORT, 'transfer type and transfer_group_id must agree')
+    WHERE (NEW.type IN ('transfer_out', 'transfer_in')) != (NEW.transfer_group_id IS NOT NULL);
+    SELECT RAISE(ABORT, 'movement currency must match account currency')
+    WHERE NOT EXISTS (
+        SELECT 1 FROM accounts WHERE id = NEW.account_id AND currency_code = NEW.currency_code
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_accounts_currency_integrity
+BEFORE UPDATE OF currency_code ON accounts
+WHEN EXISTS (
+    SELECT 1 FROM movements WHERE account_id = OLD.id AND currency_code != NEW.currency_code
+)
+BEGIN
+    SELECT RAISE(ABORT, 'account currency cannot conflict with existing movements');
+END;
 
 CREATE TRIGGER IF NOT EXISTS trg_accounts_updated_at
 AFTER UPDATE ON accounts
