@@ -1,6 +1,6 @@
 interface OrbitLogoProps {
   size?: "small" | "medium" | "large";
-  color: "white" | "black";
+  color: "white" | "black" | "currentColor";
 }
 
 export default function OrbitLogo({ size = "medium", color: mode = "black" }: OrbitLogoProps) {
@@ -10,7 +10,7 @@ export default function OrbitLogo({ size = "medium", color: mode = "black" }: Or
     large: 80,
   };
   const logoSize = sizeMap[size];
-  const color = mode === "white" ? "#ffffff" : "#000000";
+  const color = mode === "currentColor" ? "currentColor" : mode === "white" ? "#ffffff" : "#000000";
 
   return (
     <svg

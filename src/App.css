@@ -1,212 +1,114 @@
+@import "@fontsource/instrument-serif/latin-400.css";
+@import "@fontsource/instrument-serif/latin-400-italic.css";
+@import "@fontsource/jetbrains-mono/latin-300.css";
+@import "@fontsource/jetbrains-mono/latin-400.css";
 @import "tailwindcss";
 
 :root {
-    /* Custom scrollbar (dark) */
-    --scrollbar-track: transparent;
-    --scrollbar-thumb: oklch(1 0 0 / 14%);
-    --scrollbar-thumb-hover: oklch(1 0 0 / 28%);
-
-    /* Custom scrollbar (light) */
-    /*--scrollbar-track: transparent;
-    --scrollbar-thumb: oklch(0.145 0 0 / 18%);
-    --scrollbar-thumb-hover: oklch(0.145 0 0 / 32%);*/
+  color-scheme: dark;
+  --color-bg: #090909;
+  --color-surface: #101010;
+  --color-primary: #f1f0ec;
+  --color-on-primary: #090909;
+  --color-muted: #949491;
+  --color-hairline: rgb(241 240 236 / 14%);
+  --color-error: #ff6a57;
+  --color-accent: #f1f0ec;
+  --color-chart-income: #f1f0ec;
+  --color-chart-expenses: #b5b8ff;
+  --color-chart-net: #ffc77a;
+  --color-type-text: #cbd5e1;
+  --color-type-integer: #7dd3fc;
+  --color-type-decimal: #fcd34d;
+  --color-type-date: #c4b5fd;
+  --color-type-enum: #f0abfc;
+  --color-scrollbar: #424242;
+  --atmosphere: radial-gradient(ellipse at 95% 0%, rgb(255 255 255 / 5%), transparent 42%);
+  --noise-opacity: .12;
+  --noise-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Cpath fill='white' filter='url(%23n)' d='M0 0h180v180H0z'/%3E%3C/svg%3E");
 }
-
+:root[data-theme="dim"] {
+  --color-bg: #141414;
+  --color-surface: #1a1a1a;
+  --color-on-primary: #141414;
+}
+:root[data-theme="cream"] {
+  color-scheme: light;
+  --color-bg: #f6e9c7;
+  --color-surface: #fbf2dd;
+  --color-primary: #201d18;
+  --color-on-primary: #f6e9c7;
+  --color-muted: #6c6250;
+  --color-hairline: rgb(32 29 24 / 18%);
+  --color-error: #ad382b;
+  --color-accent: #7c4b24;
+  --color-chart-income: #201d18;
+  --color-chart-expenses: #555b9f;
+  --color-chart-net: #946000;
+  --color-type-text: #475569;
+  --color-type-integer: #03618b;
+  --color-type-decimal: #8a5700;
+  --color-type-date: #6940af;
+  --color-type-enum: #913396;
+  --color-scrollbar: #b6a98c;
+  --atmosphere: radial-gradient(ellipse at 95% 0%, rgb(255 255 255 / 55%), transparent 55%);
+  --noise-opacity: .19;
+}
+:root[data-theme="ember"] {
+  --color-bg: #191816;
+  --color-surface: #211e1b;
+  --color-primary: #f2e9dd;
+  --color-on-primary: #191816;
+  --color-muted: #b0a397;
+  --color-hairline: rgb(242 233 221 / 16%);
+  --color-accent: #ed884e;
+  --color-scrollbar: #635044;
+  --atmosphere: radial-gradient(ellipse at 82% 5%, rgb(224 87 23 / 40%), transparent 30%), radial-gradient(ellipse at 94% 20%, rgb(177 53 13 / 18%), transparent 43%);
+  --noise-opacity: .16;
+}
+@theme inline {
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --default-font-family: "JetBrains Mono", monospace;
+  --color-background: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-primary: var(--color-primary);
+  --color-on-primary: var(--color-on-primary);
+  --color-muted: var(--color-muted);
+  --color-hairline: var(--color-hairline);
+  --color-error: var(--color-error);
+  --color-accent: var(--color-accent);
+  --color-chart-income: var(--color-chart-income);
+  --color-chart-expenses: var(--color-chart-expenses);
+  --color-chart-net: var(--color-chart-net);
+  --color-type-text: var(--color-type-text);
+  --color-type-integer: var(--color-type-integer);
+  --color-type-decimal: var(--color-type-decimal);
+  --color-type-date: var(--color-type-date);
+  --color-type-enum: var(--color-type-enum);
+}
 @layer base {
-    @font-face {
-        font-family: "Prociono";
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url("/Prociono.ttf") format("truetype");
-    }
-    /* Add more @font-face blocks for other weights/styles */
+  * { scrollbar-width: thin; scrollbar-color: var(--color-scrollbar) transparent; }
+  body { margin: 0; background: var(--color-bg); color: var(--color-primary); font-weight: 300; }
+  button:not(:disabled), select { cursor: pointer; }
+  button, input, select, textarea { font: inherit; }
+  button:disabled { cursor: not-allowed; opacity: .4; }
+  :focus-visible { outline: 1px solid var(--color-primary); outline-offset: 4px; }
+  select option { background: var(--color-surface); color: var(--color-primary); }
+  ::selection { background: var(--color-primary); color: var(--color-on-primary); }
 }
-
-@theme {
-    /* Creates a utility class 'font-primary' */
-    --font-primary: "Prociono", sans-serif;
-
-    /* Optionally override the default sans font */
-    --default-font-family: "Prociono", sans-serif;
+@layer components {
+  .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-xs border border-primary bg-primary px-4 py-2.5 text-xs font-normal text-on-primary transition-opacity hover:opacity-80 disabled:opacity-40; }
+  .btn-secondary { @apply inline-flex items-center justify-center gap-2 rounded-xs border border-hairline bg-transparent px-4 py-2.5 text-xs text-primary transition-colors hover:border-primary/50 hover:bg-primary/5; }
+  .field { @apply w-full rounded-xs border border-hairline bg-surface px-3 py-2.5 text-sm text-primary outline-none placeholder:text-muted/70 focus:border-primary/60; }
+  .label { @apply mb-2 block text-[10px] uppercase tracking-[0.16em] text-muted; }
 }
-
-/* ===== Orbit SplashScreen animations ===== */
-
-/* Soft entrance: fade up + scale in */
-@keyframes orbit-fade-up {
-    0% {
-        opacity: 0;
-        transform: translateY(12px) scale(0.96);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* Animated glow for the "Orbit" wordmark (pulsing text-shadow) */
-@keyframes orbit-text-glow {
-    0%,
-    100% {
-        text-shadow:
-            0 0 8px rgba(255, 255, 255, 0.35),
-            0 0 18px rgba(255, 255, 255, 0.18),
-            0 0 40px rgba(255, 255, 255, 0.08);
-    }
-    50% {
-        text-shadow:
-            0 0 14px rgba(255, 255, 255, 0.65),
-            0 0 34px rgba(255, 255, 255, 0.4),
-            0 0 70px rgba(255, 255, 255, 0.22);
-    }
-}
-
-/* Gentle breathing glow halo behind the logo */
-@keyframes orbit-halo {
-    0%,
-    100% {
-        opacity: 0.35;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.6;
-        transform: scale(1.08);
-    }
-}
-
-/* Subtle float for the logo mark */
-@keyframes orbit-float {
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-6px);
-    }
-}
-
-/* Loading dots */
-@keyframes orbit-dot {
-    0%,
-    80%,
-    100% {
-        opacity: 0.2;
-    }
-    40% {
-        opacity: 1;
-    }
-}
-
-/* Indeterminate progress sweep */
-@keyframes orbit-progress {
-    0% {
-        transform: translateX(-100%);
-    }
-    100% {
-        transform: translateX(400%);
-    }
-}
-
-.animate-orbit-fade-up {
-    animation: orbit-fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.animate-orbit-text-glow {
-    animation: orbit-text-glow 3.2s ease-in-out infinite;
-}
-.animate-orbit-halo {
-    animation: orbit-halo 4s ease-in-out infinite;
-}
-.animate-orbit-float {
-    animation: orbit-float 5s ease-in-out infinite;
-}
-.animate-orbit-progress {
-    animation: orbit-progress 1.6s ease-in-out infinite;
-}
-.animate-orbit-dot {
-    animation: orbit-dot 1.4s ease-in-out infinite;
-}
-
+.orbit-atmosphere { background: var(--atmosphere), var(--color-bg); }
+:root[data-noise-enabled="false"] .orbit-grain { display: none; }
+@keyframes enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes column-rise { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
+.animate-enter { animation: enter .45s ease-out both; }
+.animate-column { transform-origin: bottom; animation: column-rise .6s ease-out both; }
 @media (prefers-reduced-motion: reduce) {
-    .animate-orbit-fade-up,
-    .animate-orbit-text-glow,
-    .animate-orbit-halo,
-    .animate-orbit-float,
-    .animate-orbit-progress,
-    .animate-orbit-dot {
-        animation: none;
-    }
-}
-
-/* ===== Custom scrollbar — minimalist, mode-aware ===== */
-
-* {
-    /* Firefox */
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-}
-
-/* WebKit / Chromium / Safari */
-*::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-*::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
-}
-
-*::-webkit-scrollbar-thumb {
-    background-color: var(--scrollbar-thumb);
-    border-radius: 9999px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-    transition: background-color 0.2s ease;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-    background-color: var(--scrollbar-thumb-hover);
-}
-
-*::-webkit-scrollbar-corner {
-    background: transparent;
-}
-
-/* dropdown styles */
-
-.mov-pop {
-    transform-origin: top;
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    transition:
-        opacity 0.18s ease,
-        transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-@starting-style {
-    .mov-pop {
-        opacity: 0;
-        transform: translateY(-8px) scale(0.97);
-    }
-}
-
-/* Staggered option rows inside a popover */
-.mov-pop-item {
-    opacity: 1;
-    transform: translateX(0);
-    transition:
-        opacity 0.3s ease,
-        transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-}
-@starting-style {
-    .mov-pop-item {
-        opacity: 0;
-        transform: translateX(-6px);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .mov-pop,
-    .mov-pop-item {
-        transition: none;
-    }
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }

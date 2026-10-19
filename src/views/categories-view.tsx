@@ -1,101 +1,85 @@
-import { useMemo, useState } from "react";
-import { Tag } from "lucide-react";
-import { Pencil, Trash2 } from "lucide-react";
-import { ViewLayout } from "../layouts/view-layout";
-import { Category } from "../definitions/categories";
-import { useModalStore } from "../stores/modal-store";
-import { AddCategoryModal } from "../components/modals/categories/add-category-modal";
-import { SearchInput } from "../components/search-input";
-import { DeleteCategoryModal } from "../components/modals/categories/delete-category-modal";
-import { EditCategoryModal } from "../components/modals/categories/edit-category-modal";
-import { useCategories } from "../stores/global-data-store";
-
-const CategoryItem = ({ category }: { category: Category }) => {
-  const open = useModalStore((state) => state.open);
-  const created = new Date(category.created_at).toLocaleDateString("es-AR");
-
-  return (
-    <div className="bg-white shadow rounded px-4 py-3 flex items-center justify-between gap-3">
-      <div className="min-w-0">
-        <p className="font-medium text-neutral-800 truncate">{category.name}</p>
-        <p className="text-xs text-neutral-400">
-          Creado: {created} · {category.movement_count ?? 0} movimiento{(category.movement_count ?? 0) !== 1 ? "s" : ""}
-        </p>
-      </div>
-
-      <div className="flex items-center gap-1 shrink-0">
-        <button
-          onClick={() => open(<EditCategoryModal category={category} />)}
-          className="p-1.5 rounded text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-          title="Editar"
-        >
-          <Pencil className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => open(<DeleteCategoryModal category={category} />)}
-          className="p-1.5 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-          title="Eliminar"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
-};
+import { useState } from "react";
+import { Archive, Pencil, Plus } from "lucide-react";
+import { useArchiveCatalogCategory, useCatalogCategories } from "../hooks/use-catalog";
+import { CatalogCategoryForm } from "../components/catalog-category-form";
+import { categoryPath, catalogTypeLabels } from "../components/catalog-utils";
+import { CatalogArchiveConfirm, CatalogEmpty, CatalogError, CatalogLoading, CatalogPage, CatalogStat, catalogField, catalogLabel, catalogPrimary, catalogSecondary } from "../components/catalog-ui";
 
 export default function CategoriesView() {
-  const categories = useCategories();
-  const [query, setQuery] = useState("");
-  const open = useModalStore((state) => state.open);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return categories;
-    return categories.filter((c) => c.name.toLowerCase().includes(q));
-  }, [categories, query]);
+  const categories = useCatalogCategories();
+  const archive = useArchiveCatalogCategory();
+  const [search, setSearch] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const [type, setType] = useState("all");
+  const [editor, setEditor] = useState<number | "new" | null>(null);
+  const [archiveId, setArchiveId] = useState<number | null>(null);
+  const [notice, setNotice] = useState("");
+  const all = categories.data ?? [];
+  const editing = all.find((category) => category.id === editor);
+  const archiving = all.find((category) => category.id === archiveId);
+  const filtered = all.filter((category) =>
+    (showArchived || category.isActive) && (type === "all" || category.type === type) &&
+    categoryPath(category, all).toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
+  ).sort((a, b) => categoryPath(a, all).localeCompare(categoryPath(b, all), "es"));
+  const busy = editor !== null || archiveId !== null;
 
   return (
-    <ViewLayout>
-      <div className="w-full h-full grid grid-rows-[auto_1fr] gap-y-3">
-        {/* Header */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Tag className="w-5 h-5 text-neutral-700" />
-                Categorías
-              </h2>
-              <p className="text-sm text-neutral-500">Organizá tus movimientos por categoría.</p>
-            </div>
-            <button
-              onClick={() => open(<AddCategoryModal />)}
-              className="px-3 py-1 bg-blue-500 text-white text-sm cursor-pointer rounded hover:bg-blue-600"
-            >
-              Añadir categoría
-            </button>
-          </div>
-
-          {/* Totals */}
-          <div className="bg-white shadow rounded px-4 py-3">
-            <p className="text-xs text-neutral-500">Categorías</p>
-            <p className="text-2xl font-semibold">{categories.length}</p>
-          </div>
-
-          {/* Search */}
-          <SearchInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar categoría por nombre..." />
-        </div>
-
-        {/* List */}
-        <div className="space-y-2 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
-          {filtered.length === 0 ? (
-            <div className="bg-white shadow rounded p-4 text-sm text-neutral-500">
-              {query ? "No se encontraron categorías que coincidan." : "No hay categorías registradas."}
-            </div>
-          ) : (
-            filtered.map((category) => <CategoryItem key={category.id} category={category} />)
-          )}
-        </div>
+    <CatalogPage title="Categorías" headingLead="Ordená tus" description="Una estructura clara para tus ingresos y gastos. Organizá categorías y subcategorías sin perder el historial."
+      action={<button className={catalogPrimary} disabled={busy || !categories.data} onClick={() => { setNotice(""); setEditor("new"); }}><Plus size={16} aria-hidden="true" />Nueva categoría</button>}>
+      <div className="grid grid-cols-3 gap-4">
+        <CatalogStat label="Activas" value={categories.data ? all.filter((category) => category.isActive).length : undefined} />
+        <CatalogStat label="Subcategorías" value={categories.data ? all.filter((category) => category.isActive && category.parentId !== null).length : undefined} />
+        <CatalogStat label="Archivadas" value={categories.data ? all.filter((category) => !category.isActive).length : undefined} />
       </div>
-    </ViewLayout>
+      <p role="status" className="text-sm text-primary/65">{notice}</p>
+      {(editor === "new" || editing) && <CatalogCategoryForm key={editor} category={editing} categories={all} onCancel={() => setEditor(null)} onSaved={(category) => { setEditor(null); setNotice(`Categoría «${category.name}» guardada.`); }} />}
+      {archiving && <CatalogArchiveConfirm name={archiving.name} description="Dejará de estar disponible para nuevos movimientos. Primero archivá o mové sus subcategorías activas." pending={archive.isPending} error={archive.error}
+        onCancel={() => { setArchiveId(null); archive.reset(); }} onConfirm={() => {
+          if (archive.isPending) return;
+          archive.mutate(archiving.id, { onSuccess: () => { setArchiveId(null); setNotice(`Categoría «${archiving.name}» archivada.`); } });
+        }} />}
+      <div className="flex flex-wrap items-end gap-4 border-y border-primary/14 py-4">
+        <div className="min-w-48 flex-1">
+          <label className={catalogLabel} htmlFor="catalog-category-search">Buscar en la jerarquía</label>
+          <input id="catalog-category-search" type="search" className={catalogField} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre o categoría padre…" />
+        </div>
+        <div>
+          <label className={catalogLabel} htmlFor="catalog-category-type">Tipo</label>
+          <select id="catalog-category-type" className={catalogField} value={type} onChange={(event) => setType(event.target.value)}>
+            <option value="all">Todos los tipos</option>
+            {Object.entries(catalogTypeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </div>
+        <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm text-primary/65">
+          <input type="checkbox" className="size-4 accent-primary" checked={showArchived} onChange={(event) => setShowArchived(event.target.checked)} />Incluir archivadas
+        </label>
+      </div>
+      {categories.isPending && <CatalogLoading />}
+      {categories.isError && <CatalogError error={categories.error} retry={() => { void categories.refetch(); }} pending={categories.isFetching} />}
+      {categories.data && <>
+        <div className="flex justify-between font-mono text-[10px] uppercase tracking-widest text-muted">
+          <span>{filtered.length} categorías</span><span aria-live="polite">{categories.isFetching ? "Actualizando…" : "Jerarquía / tipo / movimientos"}</span>
+        </div>
+        {filtered.length === 0 ? <CatalogEmpty title={all.length ? "Sin coincidencias" : "Tu catálogo empieza acá"}>{all.length ? "Probá otra búsqueda, cambiá el tipo o incluí las categorías archivadas." : "Creá una categoría para empezar a organizar tus movimientos."}</CatalogEmpty> :
+          <ul className="divide-y divide-primary/14 border-y border-primary/14">
+            {filtered.map((category) => {
+              const parent = all.find((entry) => entry.id === category.parentId);
+              return <li key={category.id} className="flex flex-wrap items-center justify-between gap-4 py-5">
+                <div className="min-w-0 flex-1">
+                  {category.parentId !== null && <p className="mb-1 break-words font-mono text-[10px] text-muted">{parent ? categoryPath(parent, all) : "Padre no disponible"} /</p>}
+                  <h2 className="break-words text-base">{category.parentId !== null && <span className="mr-2 text-primary/35" aria-hidden="true">↳</span>}{category.name}
+                    {!category.isActive && <span className="ml-3 border border-primary/14 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-muted">Archivada</span>}
+                  </h2>
+                  <p className="mt-2 font-mono text-[10px] text-muted">{catalogTypeLabels[category.type]} · {category.movementCount.toLocaleString("es-AR")} movimientos</p>
+                </div>
+                <div className="flex gap-2">
+                  <button className={catalogSecondary} disabled={busy} aria-label={`Editar ${category.name}`} onClick={() => { setNotice(""); setEditor(category.id); }}><Pencil size={14} aria-hidden="true" /><span className="hidden sm:inline">Editar</span></button>
+                  {category.isActive && <button className={catalogSecondary} disabled={busy} aria-label={`Archivar ${category.name}`} onClick={() => { archive.reset(); setNotice(""); setArchiveId(category.id); }}><Archive size={14} aria-hidden="true" /><span className="hidden sm:inline">Archivar</span></button>}
+                </div>
+              </li>;
+            })}
+          </ul>}
+      </>}
+    </CatalogPage>
   );
 }

@@ -1,108 +1,55 @@
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight } from "lucide-react";
-import { formatCurrency } from "../../../utils/format-currency";
-import type { Account } from "../../../definitions/accounts";
-import { Movement, MovementType } from "../../../definitions/movements";
-import { Suspense, useEffect, useState } from "react";
-import { useGlobalStore } from "../../../stores/global-data-store";
+import type { ReactNode } from "react";
+import { Archive, ArrowUpRight, Pencil } from "lucide-react";
+import { useLedgerCurrencies } from "../../../hooks/use-movements";
+import { useNavigationStore } from "../../../stores/navigation-store";
+import type { Account } from "../../../types/generated/Account";
+import { LedgerDialog } from "../../ledger-ui";
+import { displayDate, formatMinor } from "../../ledger-utils";
+import { accountTypeLabel } from "../../wallet-utils";
+import { WalletError, walletLabel, walletPrimary, walletSecondary } from "../../wallet-ui";
 
-const movTypeConfig: Record<MovementType, { label: string; icon: React.ReactNode; color: string }> = {
-  income: { label: "Ingreso", icon: <ArrowDownLeft className="w-3.5 h-3.5" />, color: "text-emerald-600 bg-emerald-50" },
-  expense: { label: "Egreso", icon: <ArrowUpRight className="w-3.5 h-3.5" />, color: "text-red-500 bg-red-50" },
-  transfer: { label: "Transferencia", icon: <ArrowLeftRight className="w-3.5 h-3.5" />, color: "text-blue-500 bg-blue-50" },
-};
+export default function AccountDetailsModal({ account, onClose, onEdit, onArchive }: {
+  account: Account;
+  onClose: () => void;
+  onEdit?: () => void;
+  onArchive?: () => void;
+}) {
+  const currencyQuery = useLedgerCurrencies();
+  const openAccountMovements = useNavigationStore((state) => state.openAccountMovements);
 
-const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <div>
-    <p className="text-xs text-neutral-400 mb-0.5">{label}</p>
-    <p className="text-sm text-neutral-800">{value}</p>
-  </div>
-);
-
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-xs font-medium text-neutral-400 uppercase tracking-wide mb-3">{children}</p>
-);
-
-const MovementByAcccountList = ({ id }: { id: number }) => {
-  const [movements, setMovements] = useState<Movement[]>([]);
-  const getMovementsByAccountId = useGlobalStore((state) => state.getMovementsByAccount);
-
-  useEffect(() => {
-    const fetchMovements = async () => {
-      const result = await getMovementsByAccountId(id);
-      setMovements(result);
-    };
-
-    fetchMovements();
-  }, []);
-
-  return (
-    <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-      {movements.length === 0 ? (
-        <p className="text-sm text-neutral-400">No hay movimientos registrados.</p>
-      ) : (
-        movements.map((mov) => {
-          const config = movTypeConfig[mov.mov_type];
-          const date = new Date(mov.date).toLocaleDateString("es-AR");
-          return (
-            <div key={mov.id} className="flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-neutral-50 border border-neutral-100">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium shrink-0 ${config.color}`}>
-                  {config.icon}
-                  {config.label}
-                </span>
-                <p className="text-sm text-neutral-700 truncate">{mov.details}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-sm font-medium text-neutral-900">{formatCurrency(mov.original_amount, mov.currency)}</p>
-                <p className="text-xs text-neutral-400">{date}</p>
-              </div>
-            </div>
-          );
-        })
-      )}
-    </div>
-  );
-};
-
-export default function AccountDetailsModal({ account }: { account: Account }) {
-  const currency = account.currency ?? "ARS";
-  const created = new Date(account.created_at).toLocaleDateString("es-AR");
-
-  return (
-    <>
-      {/* Header */}
-      <div className="mb-5 pr-6">
-        <h3 className="text-base font-semibold text-neutral-900">{account.name}</h3>
-        <p className="text-xs text-neutral-400">
-          {account.acc_type ?? "-"} · {currency}
-        </p>
-      </div>
-
-      {/* Datos de la cuenta */}
-      <div className="mb-5">
-        <SectionLabel>Cuenta</SectionLabel>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-          <Field label="Balance actual" value={<span className="font-semibold text-neutral-900">{formatCurrency(account.balance, currency)}</span>} />
-          <Field label="Balance inicial" value={formatCurrency(account.balance ?? 0, currency)} />
-          <Field label="Moneda" value={currency} />
-          <Field label="Fecha de creación" value={created} />
-          {account.notes && (
-            <div className="col-span-2">
-              <Field label="Notas" value={account.notes} />
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="border-t border-neutral-100 mb-5" />
-
-      {/* Movimientos */}
+  return <LedgerDialog title="Detalle de cuenta" onClose={onClose}>
+    <div className="space-y-6 text-primary">
       <div>
-        <SectionLabel>Movimientos recientes</SectionLabel>
-        <Suspense fallback={<div>Loading...</div>}>
-          <MovementByAcccountList id={account.id} />
-        </Suspense>
+        <p className={walletLabel}>{accountTypeLabel(account.accountType)} · {account.isActive ? "Activa" : "Archivada"}</p>
+        <h3 className="break-words font-display text-3xl">{account.name}</h3>
       </div>
-    </>
-  );
+      <div className="border-y border-primary/[0.14] py-6">
+        <p className={walletLabel}>Saldo actual</p>
+        <p className="break-words font-display text-4xl tabular-nums sm:text-5xl">{formatMinor(account.balance, account.currencyCode, currencyQuery.data ?? [])}</p>
+        <p className="mt-3 font-mono text-[10px] leading-relaxed text-muted">Calculado a partir de los movimientos. El saldo inicial, si existe, forma parte de este saldo.</p>
+      </div>
+      {currencyQuery.isError && <WalletError error={currencyQuery.error} retry={() => void currencyQuery.refetch()} />}
+      {currencyQuery.isPending && <p role="status" className="font-mono text-xs text-muted">Cargando formato de moneda…</p>}
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-5">
+        <Detail label="Moneda">{account.currencyCode}{currencyQuery.data?.find((currency) => currency.code === account.currencyCode)?.name && <span className="mt-1 block text-muted">{currencyQuery.data.find((currency) => currency.code === account.currencyCode)?.name}</span>}</Detail>
+        <Detail label="Estado">{account.isActive ? "Activa" : "Archivada"}</Detail>
+        <Detail label="Creada">{displayDate(account.createdAt)}</Detail>
+        <Detail label="Actualizada">{displayDate(account.updatedAt)}</Detail>
+        <div className="col-span-2"><Detail label="Descripción"><span className="whitespace-pre-wrap">{account.description || "Sin descripción."}</span></Detail></div>
+      </dl>
+      <div className="border-t border-primary/[0.14] pt-5">
+        <button type="button" className={walletSecondary} onClick={() => { onClose(); openAccountMovements(account.id); }}>Ver movimientos de esta cuenta<ArrowUpRight size={15} aria-hidden="true" /></button>
+        <p className="mt-2 font-mono text-[10px] leading-relaxed text-muted">Consultá el historial de «{account.name}», incluidas las transferencias enviadas y recibidas.</p>
+      </div>
+      <footer className="flex flex-wrap items-center justify-end gap-3 border-t border-primary/[0.14] pt-5">
+        {onArchive && account.isActive && <button type="button" className={`${walletSecondary} sm:mr-auto`} onClick={onArchive}><Archive size={15} aria-hidden="true" />Archivar</button>}
+        <button type="button" className={walletSecondary} onClick={onClose}>Cerrar</button>
+        {onEdit && <button type="button" className={walletPrimary} onClick={onEdit}><Pencil size={15} aria-hidden="true" />Editar cuenta</button>}
+      </footer>
+    </div>
+  </LedgerDialog>;
+}
+
+function Detail({ label, children }: { label: string; children: ReactNode }) {
+  return <div className="min-w-0"><dt className={walletLabel}>{label}</dt><dd className="break-words font-mono text-xs leading-relaxed text-primary/80">{children}</dd></div>;
 }

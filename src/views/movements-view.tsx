@@ -1,299 +1,186 @@
-import { useEffect, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
-import { ViewLayout } from "../layouts/view-layout";
-import { useModalStore } from "../stores/modal-store";
-import { formatCurrency } from "../utils/format-currency";
-import type { Movement, MovementTypeFilter } from "../definitions/movements";
-import { useGlobalStore, useGroups, useMovements } from "../stores/global-data-store";
-import { AddMovementModal } from "../components/modals/movements/add-movement-modal";
-import { formatDate } from "../utils/format-date";
-import { MOV_TYPE_CONFIG } from "../definitions/consts";
-import { CategorySelect, PeriodSelector, SortControl } from "../components/list-controls";
-import { AddGroupModal } from "../components/modals/groups/add-group-modal";
+import { useEffect, useState, type ReactNode } from "react";
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight, FileUp, Plus, Search } from "lucide-react";
+import { useLedgerChoices, useMovements } from "../hooks/use-movements";
+import { useNavigationStore } from "../stores/navigation-store";
+import type { Movement } from "../types/generated/Movement";
+import type { MovementFilter } from "../types/generated/MovementFilter";
+import type { MovementType } from "../types/generated/MovementType";
+import { LedgerForm } from "../components/ledger-form";
+import { ImportDataDialog } from "../components/import-data-dialog";
+import { LedgerDetails } from "../components/ledger-details";
+import { LedgerError, ledgerField, ledgerLabel, ledgerPrimary, ledgerSecondary } from "../components/ledger-ui";
+import { displayDate, formatMinor, movementLabels } from "../components/ledger-utils";
 
-const FILTERS: Readonly<{ value: MovementTypeFilter; label: string }>[] = [
-  { value: "all", label: "Todos" },
-  { value: "income", label: "Ingresos" },
-  { value: "expense", label: "Egresos" },
-  { value: "transfer", label: "Transferencias" },
-];
+const initialFilter: MovementFilter = {
+  search: null, accountId: null, categoryId: null, movementType: null, currencyCode: null,
+  dateFrom: null, dateTo: null, limit: 25, offset: 0,
+};
+type Panel = { mode: "create" } | { mode: "details" | "edit"; movement: Movement } | null;
 
 export default function MovementsView() {
-  const movements = useMovements();
-  const open = useModalStore((s) => s.open);
-  const groups = useGroups();
-  const totalMovements = useGlobalStore((state) => state.totalMovements);
-
-  const filters = useGlobalStore((state) => state.filters);
-  const fetchMovements = useGlobalStore((state) => state.initMovements);
-
-  const stats = useGlobalStore((state) => state.stats);
-  const setStats = useGlobalStore((state) => state.setStats);
+  const movementsTarget = useNavigationStore((state) => state.movementsTarget);
+  const consumeMovementsTarget = useNavigationStore((state) => state.consumeMovementsTarget);
+  const [filter, setFilter] = useState<MovementFilter>(() => ({ ...initialFilter, accountId: movementsTarget?.accountId ?? null }));
+  const [search, setSearch] = useState("");
+  const [panel, setPanel] = useState<Panel>(null);
+  const [notice, setNotice] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const choices = useLedgerChoices();
+  const invalidDates = !!(filter.dateFrom && filter.dateTo && filter.dateFrom > filter.dateTo);
+  const movements = useMovements(filter, !invalidDates);
+  const page = movements.data;
+  const limit = filter.limit ?? 25;
+  const offset = filter.offset ?? 0;
+  const searching = search.trim() !== (filter.search ?? "");
+  const formReady = !choices.isPending && !choices.error;
 
   useEffect(() => {
-    const loadMovements = async () => {
-      await Promise.all([fetchMovements(), setStats()]);
-    };
-    loadMovements();
-  }, [filters]);
+    if (!movementsTarget) return;
+    setFilter({ ...initialFilter, accountId: movementsTarget.accountId });
+    setSearch("");
+    setPanel(null);
+    setNotice("");
+    consumeMovementsTarget(movementsTarget);
+  }, [movementsTarget, consumeMovementsTarget]);
 
-  const { period, groupId, categoryId, limit, offset, type, sort } = filters;
-  const goToNextPage = useGlobalStore((state) => state.goToNextPage);
-  const goToPreviousPage = useGlobalStore((state) => state.goToPreviousPage);
-  const filterByQuery = useGlobalStore((state) => state.filterByQuery);
-  const filterByGroupId = useGlobalStore((state) => state.filterByGroupId);
-  const changePeriod = useGlobalStore((state) => state.changePeriod);
-  const changeType = useGlobalStore((state) => state.changeType);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setFilter((current) => current.search === (search.trim() || null) ? current : { ...current, search: search.trim() || null, offset: 0 });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
-  // TODO: retrieve already sorted groups from the database to avoid sorting in memory.
-  // Grupos ordenados por cantidad de movimientos desc
-  const sortedGroups = useMemo(() => [...groups].sort((a, b) => b.movements.length - a.movements.length), [groups]);
+  useEffect(() => {
+    if (page && !movements.isPlaceholderData && offset > 0 && offset >= page.total) {
+      setFilter((current) => ({ ...current, offset: Math.max(0, Math.floor((page.total - 1) / limit) * limit) }));
+    }
+  }, [page, movements.isPlaceholderData, offset, limit]);
 
-  const isTherePreviousPage = offset > 0;
-  const isThereNextPage = offset + limit < totalMovements;
+  function changeFilter(patch: Partial<MovementFilter>) {
+    setFilter((current) => ({ ...current, ...patch, offset: 0 }));
+    setNotice("");
+  }
+  function resetFilters() { setSearch(""); setFilter({ ...initialFilter, limit }); setNotice(""); }
+  function saved() {
+    setPanel(null); setNotice("Movimiento guardado. Los saldos y reportes se recalculan automáticamente.");
+    setFilter((current) => ({ ...current, offset: 0 }));
+  }
+  const hasFilters = search !== "" || filter.accountId != null || filter.categoryId != null || filter.movementType != null || filter.currencyCode != null || filter.dateFrom != null || filter.dateTo != null;
 
-  return (
-    <ViewLayout>
-      <section className="h-full flex flex-col px-4 xl:px-0 xl:container mx-auto">
-        <header className="flex justify-between items-start my-8">
-          <div className="justify-between items-center">
-            <p className="text-neutral-500 text-xs uppercase font-mono tracking-wider">Orbit / Finanzas</p>
-            <h1 className="text-5xl text-neutral-50">Movimientos</h1>
-          </div>
-          {/* placeholder para los periodos */}
-          <PeriodSelector value={period ?? "1m"} onChange={changePeriod} />
-        </header>
-        <div className="grid flex-1 min-h-0 grid-cols-[200px_minmax(0,1fr)_200px] gap-x-4 w-full relative">
-          {/* groups */}
-          <aside className="order-1">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] uppercase tracking-[0.28em] text-[oklch(0.5_0_0)]">Grupos</p>
-              <button
-                onClick={() => open(<AddGroupModal />)}
-                aria-label="Nuevo grupo"
-                title="Nuevo grupo"
-                className="group inline-flex size-7 items-center justify-center rounded-full bg-[oklch(0.97_0_0)] text-[oklch(0.15_0_0)] transition-transform hover:scale-110 active:scale-95"
-              >
-                <Plus className="size-4 transition-transform group-hover:rotate-90" strokeWidth={2} />
-              </button>
-            </div>
-            <nav className="mt-5 flex flex-col">
-              <GroupButton
-                label="Todos"
-                count={movements.length}
-                active={groupId === null || groupId === undefined}
-                onClick={() => filterByGroupId(null)}
-              />
-              {sortedGroups.map((g) => (
-                <GroupButton
-                  key={g.id}
-                  label={g.name}
-                  description={g.description}
-                  count={g.movements.length}
-                  active={g.id === groupId}
-                  onClick={() => filterByGroupId(g.id)}
-                />
-              ))}
-            </nav>
-          </aside>
-
-          {/* movements list */}
-          <main className="order-2 flex flex-col min-h-0 h-full relative">
-            {/* search */}
-            <div className="group relative mb-5">
-              <Search
-                className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[oklch(0.5_0_0)] transition-colors group-focus-within:text-[oklch(0.8_0_0)]"
-                strokeWidth={2}
-              />
-              <input
-                type="text"
-                placeholder="Buscar movimientos…"
-                aria-label="Buscar movimientos"
-                onChange={(e) => filterByQuery(e.target.value)}
-                className="w-full rounded-full border border-[oklch(1_0_0/0.08)] bg-[oklch(1_0_0/0.03)] py-2.5 pl-11 pr-4 text-sm text-[oklch(0.92_0_0)] outline-none transition-all placeholder:text-[oklch(0.45_0_0)] hover:border-[oklch(1_0_0/0.14)] focus:border-[oklch(1_0_0/0.22)] focus:bg-[oklch(1_0_0/0.05)]"
-              />
-            </div>
-
-            {/* controls */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex flex-wrap gap-1">
-                {FILTERS.map((f) => {
-                  const active = type === f.value;
-                  return (
-                    <button
-                      key={f.value}
-                      onClick={() => changeType(f.value)}
-                      className={`rounded-full px-3.5 py-1.5 text-xs transition-colors ${
-                        active ? "bg-[oklch(1_0_0/0.1)] text-[oklch(0.95_0_0)]" : "text-[oklch(0.55_0_0)] hover:text-[oklch(0.8_0_0)]"
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={() => open(<AddMovementModal />)}
-                className="group inline-flex items-center gap-2 rounded-full bg-[oklch(0.97_0_0)] p-2 xl:py-2 xl:pl-3 xl:pr-4 text-sm font-medium text-[oklch(0.15_0_0)] transition-transform hover:scale-[1.02] active:scale-95"
-              >
-                <Plus className="size-4 transition-transform group-hover:rotate-90" strokeWidth={2} />
-                <p className="xl:block hidden">Nuevo Registro</p>
-              </button>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-1">
-                <CategorySelect categoryId={categoryId} />
-                <span className="h-4 w-px bg-[oklch(1_0_0/0.1)]" />
-                <SortControl sortField={sort?.field ?? "date"} sortOrder={sort?.order ?? "DESC"} />
-              </div>
-            </div>
-
-            {/* list */}
-            <div className="mt-7 flex-1 min-h-0 overflow-y-auto pr-1 [scrollbar-width:thin]">
-              <ul>
-                {/*first 30 items to test */}
-                {movements.map((m) => (
-                  <MovementRow key={m.id} m={m} category={m.category_id?.toString() ?? "Sin categoría"} />
-                ))}
-              </ul>
-              {movements.length === 0 && <p className="py-16 text-center text-sm text-[oklch(0.5_0_0)]">Sin movimientos para este filtro.</p>}
-            </div>
-
-            {/* pagination controls */}
-            {totalMovements > 0 ? (
-              <div className="flex justify-between items-center-safe gap-4 mt-4">
-                <button
-                  disabled={!isTherePreviousPage}
-                  onClick={goToPreviousPage}
-                  className="group flex items-center gap-x-1 rounded border border-[oklch(1_0_0/0.08)] hover:bg-[oklch(1_0_0/0.03)] py-2.5 pl-2 pr-4 text-sm font-mono text-[oklch(0.92_0_0)] outline-none transition-all hover:border-[oklch(0.96_0_0)] not-disabled:cursor-pointer disabled:pointer-events-none disabled:text-[oklch(1_0_0/0.08)]"
-                >
-                  <ChevronLeft
-                    className="size-4 text-[oklch(0.5_0_0)] group-disabled:text-[oklch(1_0_0/0.08)] transition-colors group-hover:text-[oklch(0.96_0_0)]"
-                    strokeWidth={2}
-                  />
-                  <p className="text-[10px] group-disabled:text-[oklch(1_0_0/0.08)] transition-colors xl:text-sm uppercase tracking-[0.22em] text-[oklch(0.55_0_0)] group-hover:text-[oklch(0.96_0_0)]">
-                    anterior
-                  </p>
-                </button>
-                <button
-                  disabled={!isThereNextPage}
-                  onClick={goToNextPage}
-                  className="group flex items-center gap-x-1 rounded border border-[oklch(1_0_0/0.08)] hover:bg-[oklch(1_0_0/0.03)] py-2.5 pl-4 pr-2 text-sm font-mono text-[oklch(0.92_0_0)] outline-none transition-all hover:border-[oklch(0.96_0_0)] not-disabled:cursor-pointer disabled:pointer-events-none disabled:text-[oklch(1_0_0/0.08)]"
-                >
-                  <p className="text-[10px] group-disabled:text-[oklch(1_0_0/0.08)] transition-colors xl:text-sm uppercase tracking-[0.22em] text-[oklch(0.55_0_0)] group-hover:text-[oklch(0.96_0_0)]">
-                    siguiente
-                  </p>
-                  <ChevronRight
-                    className="size-4 text-[oklch(0.5_0_0)] group-disabled:text-[oklch(1_0_0/0.08)] transition-colors group-hover:text-[oklch(0.96_0_0)]"
-                    strokeWidth={2}
-                  />
-                </button>
-              </div>
-            ) : null}
-          </main>
-
-          {/* insights panel */}
-          <aside className="order-3 flex flex-col gap-y-8">
-            <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl bg-[oklch(1_0_0/0.06)]">
-              <StatCell label="Ingresos" value={formatCurrency(stats.totalIncome)} accent="oklch(0.78 0.13 155)" />
-              <StatCell label="Egresos" value={formatCurrency(stats.totalExpense)} accent="oklch(0.62 0.06 30)" />
-              <StatCell label="Neto" value={formatCurrency(stats.totalNet)} accent="oklch(0.85 0 0)" emphasis />
-            </div>
-
-            {/*<PeriodPulse movements={items} />*/}
-
-            {/*<GroupHeatmap membership={membership} totalItems={items.length} />*/}
-          </aside>
+  return <section className="h-full overflow-y-auto bg-transparent p-5 text-primary sm:p-8 lg:p-10" aria-label="Movimientos">
+    <div className="mx-auto max-w-7xl space-y-7">
+      <header className="flex flex-wrap items-end justify-between gap-5 border-b border-primary/15 pb-7">
+        <div>
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.24em] text-muted">Orbit / Libro de cuentas</p>
+          <h1 className="font-mono text-4xl font-light leading-[1.15] tracking-tight text-muted sm:text-5xl">Tu registro de<span className="block text-primary">Movimientos</span></h1>
+          <p className="mt-3 max-w-xl font-mono text-xs leading-relaxed text-muted">Cada entrada, cada salida. Tus transferencias, una sola vez.</p>
         </div>
+        <div className="flex flex-wrap gap-3">
+          <button type="button" className={ledgerSecondary} onClick={() => setImportOpen(true)}><FileUp size={16} />Importar CSV</button>
+          <button type="button" className={ledgerPrimary} disabled={!formReady} onClick={() => { setPanel({ mode: "create" }); setNotice(""); }}><Plus size={16} />Nuevo movimiento</button>
+        </div>
+      </header>
+
+      {choices.error != null && <LedgerError error={choices.error} retry={() => void choices.refetch()} />}
+      {choices.isPending && !choices.error && <p role="status" className="font-mono text-xs text-muted">Cargando cuentas, monedas y categorías…</p>}
+      <section aria-label="Filtros de movimientos" className="space-y-5 border border-primary/15 p-4 sm:p-5">
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="min-w-52 flex-1">
+            <span className={ledgerLabel}>Búsqueda de texto completo</span>
+            <span className="relative block"><Search size={15} aria-hidden="true" className="pointer-events-none absolute left-3 top-3.5 text-primary/40" />
+              <input type="search" className={`${ledgerField} pl-10`} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Descripción o notas…" />
+            </span>
+          </label>
+          <button type="button" className={ledgerSecondary} disabled={!hasFilters} onClick={resetFilters}>Limpiar filtros</button>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <FilterField label="Cuenta">
+            <select className={ledgerField} value={filter.accountId ?? ""} onChange={(event) => changeFilter({ accountId: event.target.value ? Number(event.target.value) : null })}>
+              <option value="">Todas las cuentas</option>
+              {choices.accounts.map((account) => <option key={account.id} value={account.id}>{account.name} · {account.currencyCode}{!account.isActive ? " · inactiva" : ""}</option>)}
+            </select>
+          </FilterField>
+          <FilterField label="Categoría">
+            <select className={ledgerField} value={filter.categoryId ?? ""} onChange={(event) => changeFilter({ categoryId: event.target.value ? Number(event.target.value) : null })}>
+              <option value="">Todas las categorías</option>
+              {choices.categories.map((category) => <option key={category.id} value={category.id}>{category.name}{!category.isActive ? " · archivada" : ""}</option>)}
+            </select>
+          </FilterField>
+          <FilterField label="Moneda">
+            <select className={ledgerField} value={filter.currencyCode ?? ""} onChange={(event) => changeFilter({ currencyCode: event.target.value || null })}>
+              <option value="">Todas las monedas</option>
+              {choices.currencies.map((currency) => <option key={currency.code} value={currency.code}>{currency.code} · {currency.name}</option>)}
+            </select>
+          </FilterField>
+          <FilterField label="Tipo">
+            <select className={ledgerField} value={filter.movementType ?? ""} onChange={(event) => changeFilter({ movementType: (event.target.value || null) as MovementType | null })}>
+              <option value="">Todos los tipos</option>
+              {(Object.entries(movementLabels) as [MovementType, string][]).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </FilterField>
+          <FilterField label="Desde"><input type="date" className={ledgerField} value={filter.dateFrom ?? ""} max={filter.dateTo ?? undefined} aria-invalid={invalidDates} onChange={(event) => changeFilter({ dateFrom: event.target.value || null })} /></FilterField>
+          <FilterField label="Hasta"><input type="date" className={ledgerField} value={filter.dateTo ?? ""} min={filter.dateFrom ?? undefined} aria-invalid={invalidDates} onChange={(event) => changeFilter({ dateTo: event.target.value || null })} /></FilterField>
+        </div>
+        <p className="font-mono text-[10px] leading-relaxed text-muted">Cuenta y moneda incluyen ambos lados de una transferencia. Orden: fecha más reciente primero.</p>
       </section>
-    </ViewLayout>
-  );
-}
 
-function GroupButton({
-  label,
-  description,
-  count,
-  active,
-  onClick,
-}: {
-  label: string;
-  description?: string | null;
-  count: number;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`group relative flex items-start justify-between gap-3 rounded-lg px-3 py-3 text-left transition-colors ${
-        active ? "bg-[oklch(1_0_0/0.05)]" : "hover:bg-[oklch(1_0_0/0.03)]"
-      }`}
-    >
-      <span className={`absolute left-0 top-1/2 h-5 w-px -translate-y-1/2 transition-all ${active ? "bg-[oklch(0.7_0.13_85)]" : "bg-transparent"}`} />
-      <span className="min-w-0">
-        <span className={`block text-sm ${active ? "text-[oklch(0.96_0_0)]" : "text-[oklch(0.72_0_0)]"}`}>{label}</span>
-        {description && <span className="mt-0.5 block truncate text-[11px] text-[oklch(0.45_0_0)]">{description}</span>}
-      </span>
-      <span className="mt-0.5 shrink-0 font-mono text-[11px] text-[oklch(0.5_0_0)]">{count}</span>
-    </button>
-  );
-}
-
-function StatCell({ label, value, accent, emphasis }: { label: string; value: string; accent: string; emphasis?: boolean }) {
-  return (
-    <div className="bg-[oklch(0.16_0_0)] px-4 py-3 xl:px-5 xl:py-4">
-      <div className="flex items-center gap-2">
-        <span className="size-1.5 rounded-full" style={{ background: accent }} />
-        <span className="text-[10px] xl:text-sm uppercase tracking-[0.22em] text-[oklch(0.55_0_0)]">{label}</span>
-      </div>
-      <p className={`mt-2 font-mono tracking-tight ${emphasis ? "text-xl xl:text-2xl text-[oklch(0.97_0_0)]" : "xl:text-lg text-[oklch(0.75_0_0)]"}`}>
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function MovementRow({ m, category }: { m: Movement; category?: string }) {
-  const sign = m.mov_type === "income" ? "+" : m.mov_type === "expense" ? "−" : "";
-  const amountColor =
-    m.mov_type === "income" ? "text-[oklch(0.82_0.13_155)]" : m.mov_type === "expense" ? "text-[oklch(0.82_0_0)]" : "text-[oklch(0.7_0_0)]";
-
-  return (
-    <li className="group grid grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-[oklch(1_0_0/0.05)] py-4 transition-colors hover:bg-[oklch(1_0_0/0.02)]">
-      {/* date column */}
-      <div className="w-14 text-center">
-        <p className="font-mono text-xs uppercase text-[oklch(0.6_0_0)]">{formatDate(m.date)}</p>
-      </div>
-
-      {/* details column */}
-      <div className="min-w-0">
-        <p className="truncate text-[15px] text-[oklch(0.92_0_0)]">{m.details}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-[oklch(0.5_0_0)]">
-          <span className="uppercase tracking-[0.16em]">{MOV_TYPE_CONFIG[m.mov_type].label}</span>
-          {category && (
-            <>
-              <span className="text-[oklch(0.35_0_0)]">·</span>
-              <span>{category}</span>
-            </>
-          )}
-          {m.rate_type && (
-            <>
-              <span className="text-[oklch(0.35_0_0)]">·</span>
-              <span className="font-mono uppercase">{m.rate_type}</span>
-            </>
-          )}
+      {notice && <p role="status" className="border-l border-primary/40 pl-4 font-mono text-xs text-primary/75">{notice}</p>}
+      {invalidDates ? <LedgerError error="La fecha inicial no puede ser posterior a la final." /> : <>
+        {movements.error != null && <LedgerError error={movements.error} retry={() => void movements.refetch()} />}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-baseline gap-3"><p className="font-display text-3xl tabular-nums">{page?.total.toLocaleString("es-AR") ?? "—"}</p><span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">Movimientos lógicos</span></div>
+          <p role="status" aria-live="polite" className="font-mono text-[10px] uppercase tracking-wider text-muted">{movements.isFetching || searching ? "Actualizando…" : "Ordenados por fecha ↓"}</p>
         </div>
-      </div>
+        {movements.isPending && !movements.error ? <div role="status" className="border-y border-primary/15 py-16 text-center font-mono text-xs text-muted">Cargando movimientos…</div> : page && <>
+          {page.items.length === 0 ? <div className="border border-dashed border-primary/20 px-6 py-16 text-center">
+            <h2 className="font-display text-3xl">{hasFilters ? "Sin coincidencias" : "Tu libro empieza acá"}</h2>
+            <p className="mx-auto mt-3 max-w-md font-mono text-xs leading-relaxed text-muted">{hasFilters ? "Probá otro período, una búsqueda más corta o quitá los filtros." : "Registrá un ingreso, un gasto, una transferencia o el saldo inicial de una cuenta."}</p>
+            <button type="button" className={`${ledgerSecondary} mt-6`} disabled={!hasFilters && !formReady} onClick={hasFilters ? resetFilters : () => setPanel({ mode: "create" })}>{hasFilters ? "Ver todos los movimientos" : "Crear primer movimiento"}</button>
+          </div> : <div className={`overflow-x-auto border-y border-primary/15 ${movements.isPlaceholderData || searching ? "opacity-50" : ""}`} aria-busy={movements.isFetching || searching}>
+            <table className="w-full min-w-195 border-collapse text-left">
+              <caption className="sr-only">Movimientos paginados. Las transferencias muestran el importe enviado y el recibido en una única fila.</caption>
+              <thead className="border-b border-primary/15 font-mono text-[10px] uppercase tracking-[0.14em] text-muted"><tr>
+                <th scope="col" className="px-3 py-4 font-normal">Fecha</th><th scope="col" className="px-3 py-4 font-normal">Movimiento</th><th scope="col" className="px-3 py-4 font-normal">Cuenta / destino</th><th scope="col" className="px-3 py-4 font-normal">Categoría</th><th scope="col" className="px-3 py-4 text-right font-normal">Importe</th>
+              </tr></thead>
+              <tbody className="divide-y divide-primary/10">{page.items.map((movement) => {
+                const category = choices.categories.find((item) => item.id === movement.categoryId);
+                const shop = choices.shops.find((item) => item.id === movement.shopId);
+                const transfer = movement.type === "transfer";
+                const Icon = transfer ? ArrowLeftRight : movement.type === "expense" ? ArrowUpRight : ArrowDownLeft;
+                return <tr key={movement.id} className="hover:bg-primary/2.5">
+                  <td className="whitespace-nowrap px-3 py-5 align-top font-mono text-[11px] text-muted">{displayDate(movement.date)}</td>
+                  <td className="max-w-72 px-3 py-5 align-top">
+                    <button type="button" disabled={movements.isPlaceholderData || searching} onClick={() => setPanel({ mode: "details", movement })} className="group flex w-full items-start gap-3 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary">
+                      <Icon size={17} aria-hidden="true" className="mt-0.5 shrink-0 text-primary/55" />
+                      <span className="min-w-0"><span className="block truncate text-sm group-hover:underline">{movement.description || movementLabels[movement.type]}</span><span className="mt-1.5 block font-mono text-[10px] text-muted">{movementLabels[movement.type]}{shop ? ` · ${shop.name}` : ""}{movement.notes ? " · notas" : ""}</span><span className="sr-only"> · Ver detalle #{movement.id}</span></span>
+                    </button>
+                  </td>
+                  <td className="px-3 py-5 align-top font-mono text-[11px] text-primary/65"><span className="block">{movement.accountName}</span>{transfer && <span className="mt-1.5 block text-muted">→ {movement.toAccountName ?? "Destino"}</span>}</td>
+                  <td className="px-3 py-5 align-top font-mono text-[11px] text-muted">{category?.name ?? (movement.categoryId != null ? `#${movement.categoryId}` : "—")}</td>
+                  <td className="whitespace-nowrap px-3 py-5 text-right align-top"><p className="font-display text-lg tabular-nums">{movement.type === "expense" || transfer ? "−" : "+"}{formatMinor(movement.amount, movement.currencyCode, choices.currencies)}</p>{transfer && movement.toAmount != null && movement.toCurrencyCode && <p className="mt-1 font-display text-base tabular-nums text-primary/65">+{formatMinor(movement.toAmount, movement.toCurrencyCode, choices.currencies)}</p>}</td>
+                </tr>;
+              })}</tbody>
+            </table>
+          </div>}
+          <footer className="flex flex-wrap items-center justify-between gap-4 border-b border-primary/15 pb-5">
+            <div className="flex flex-wrap items-center gap-4">
+              <p className="font-mono text-[11px] text-muted">{page.total === 0 ? "0" : `${offset + 1}–${offset + page.items.length}`} de {page.total.toLocaleString("es-AR")}</p>
+              <label className="flex items-center gap-2 font-mono text-[10px] text-muted">Por página<select className={`${ledgerField} w-auto min-h-9`} value={limit} onChange={(event) => changeFilter({ limit: Number(event.target.value) })}>{[25, 50, 100, 200].map((size) => <option key={size} value={size}>{size}</option>)}</select></label>
+            </div>
+            <nav aria-label="Paginación de movimientos" className="flex gap-2">
+              <button type="button" className={ledgerSecondary} disabled={!page.hasPreviousPage || movements.isFetching || searching} onClick={() => setFilter((current) => ({ ...current, offset: Math.max(0, offset - limit) }))}><ChevronLeft size={15} />Anterior</button>
+              <button type="button" className={ledgerSecondary} disabled={!page.hasNextPage || movements.isFetching || searching} onClick={() => setFilter((current) => ({ ...current, offset: offset + limit }))}>Siguiente<ChevronRight size={15} /></button>
+            </nav>
+          </footer>
+        </>}
+      </>}
+    </div>
+    {importOpen && <ImportDataDialog onClose={() => setImportOpen(false)} />}
+    {panel?.mode === "details" && <LedgerDetails key={`details-${panel.movement.id}`} movement={panel.movement} categories={choices.categories} currencies={choices.currencies} shops={choices.shops} canEdit={formReady} onClose={() => setPanel(null)} onEdit={() => setPanel({ mode: "edit", movement: panel.movement })} onDeleted={() => { setPanel(null); setNotice("Movimiento eliminado. Los saldos y reportes se recalculan automáticamente."); }} />}
+    {panel && panel.mode !== "details" && <LedgerForm key={panel.mode === "create" ? "create" : `edit-${panel.movement.id}`} movement={panel.mode === "edit" ? panel.movement : undefined} accounts={choices.accounts} currencies={choices.currencies} categories={choices.categories} shops={choices.shops} onClose={() => setPanel(null)} onSaved={saved} />}
+  </section>;
+}
 
-      {/* amount column */}
-      <div className="text-right">
-        <p className={`font-mono text-[15px] tabular-nums ${amountColor}`}>
-          {sign}
-          {formatCurrency(m.ars_amount)}
-        </p>
-        {m.currency === "USD" && <p className="mt-0.5 font-mono text-[11px] text-[oklch(0.48_0_0)]">{formatCurrency(m.original_amount, "USD")}</p>}
-      </div>
-    </li>
-  );
+function FilterField({ label, children }: { label: string; children: ReactNode }) {
+  return <label><span className={ledgerLabel}>{label}</span>{children}</label>;
 }

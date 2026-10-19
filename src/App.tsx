@@ -1,56 +1,25 @@
 import "./App.css";
-import { useEffect } from "react";
+import { lazy, Suspense } from "react";
+import { Titlebar } from "./components/titlebar";
+import { NoiseOverlay } from "./components/noise-overlay";
 import WalletView from "./views/wallet-view";
-import { ViewLayout } from "./layouts/view-layout";
-import { ModalProvider } from "./providers/modal-provider";
-import CategoriesView from "./views/categories-view";
-import MovementsView from "./views/movements-view";
-import ItemsView from "./views/items-view";
-import { useGlobalStore } from "./stores/global-data-store";
-import { SplashScreen } from "./components/splash-screen";
 import Sidebar from "./components/sidebar";
 import { useNavigationStore } from "./stores/navigation-store";
+import { ThemeProvider } from "./providers/theme-provider";
+const MovementsView = lazy(() => import("./views/movements-view"));
+const CategoriesView = lazy(() => import("./views/categories-view"));
+const ItemsView = lazy(() => import("./views/items-view"));
+const AnalyticsView = lazy(() => import("./views/analytics-view"));
+const SettingsView = lazy(() => import("./views/settings-view"));
 
-function App() {
-  const initApp = useGlobalStore((state) => state.initApp);
-  const isInitialized = useGlobalStore((state) => state.isInitialized);
-  const currentView = useNavigationStore((state) => state.currentView);
+export default function App() {
+  const view = useNavigationStore((state) => state.currentView);
 
-  useEffect(() => {
-    // Se ejecuta una Sola vez al levantar el proceso de la app.
-    initApp();
-  }, [initApp]);
-
-  // Si la DB no terminó de escupir los datos iniciales, mostramos un loader limpio
-  if (!isInitialized) {
-    return <SplashScreen />;
-  }
-
-  return (
-    <div className="min-h-200 font-primary min-w-250 w-screen h-screen bg-neutral-100 grid grid-cols-[auto_1fr]">
-      {/* Top navbar */}
-      <Sidebar />
-
-      {/* Main content area */}
-      <main className="relative h-full overflow-hidden">
-        {currentView === "billetera" && <WalletView />}
-
-        {currentView === "movimientos" && <MovementsView />}
-
-        {currentView === "items" && <ItemsView />}
-
-        {currentView === "categories" && <CategoriesView />}
-
-        {currentView === "reportes" && (
-          <ViewLayout>
-            <h2 className="text-xl font-semibold mb-2">Reportes</h2>
-            <p className="text-sm text-neutral-600">Aquí van los reportes.</p>
-          </ViewLayout>
-        )}
-      </main>
-      <ModalProvider />
-    </div>
-  );
+  return <ThemeProvider><div className="orbit-atmosphere flex h-dvh min-h-0 flex-col overflow-hidden text-sm">
+    <NoiseOverlay />
+    <Titlebar />
+    <div className="flex min-h-0 flex-1"><Sidebar /><main id="main-content" className="min-w-0 flex-1 overflow-hidden"><Suspense fallback={<p className="p-10 text-muted" role="status">Cargando vista…</p>}>
+      {view === "billetera" && <WalletView />}{view === "movimientos" && <MovementsView />}{view === "categories" && <CategoriesView />}{view === "items" && <ItemsView />}{view === "reportes" && <AnalyticsView />}{view === "settings" && <SettingsView />}
+    </Suspense></main></div>
+  </div></ThemeProvider>;
 }
-
-export default App;

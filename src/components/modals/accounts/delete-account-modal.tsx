@@ -1,43 +1,35 @@
-import type { Account } from "../../../definitions/accounts";
-import { useGlobalStore } from "../../../stores/global-data-store";
-import { useModalStore } from "../../../stores/modal-store";
+import { Archive } from "lucide-react";
+import { useDeleteAccount } from "../../../hooks/use-accounts";
+import type { Account } from "../../../types/generated/Account";
+import { LedgerDialog } from "../../ledger-ui";
+import { WalletError, walletLabel, walletSecondary } from "../../wallet-ui";
 
-/**
- * Este es un modal de confirmación que recibe una cuenta como prop y pregunta al usuario si está seguro de eliminarla.
- */
-export function DeleteAccountModal({ account }: { account: Account }) {
-  const close = useModalStore((state) => state.close);
-  const deleteAccount = useGlobalStore((state) => state.deleteAccount);
+// The backend delete command archives; it never erases the account's history.
+export function DeleteAccountModal({ account, onClose, onArchived }: {
+  account: Account;
+  onClose: () => void;
+  onArchived?: () => void;
+}) {
+  const mutation = useDeleteAccount();
 
-  const handler = async (account: Account) => {
-    await deleteAccount(account.id);
-  };
+  function archive() {
+    if (mutation.isPending || !account.isActive) return;
+    mutation.mutate(account.id, { onSuccess: () => { if (onArchived) onArchived(); else onClose(); } });
+  }
 
-  return (
-    <>
-      <h3 className="text-base font-semibold text-neutral-900 mb-1">Borrar cuenta</h3>
-      <p className="text-xs text-neutral-400 mb-5">¿Estás seguro de que quieres borrar esta cuenta?</p>
-
-      {/* Acciones */}
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={close}
-          className="px-4 py-1.5 rounded-md text-sm text-neutral-600 border border-neutral-200 bg-white hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-200 transition-colors"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={() => {
-            handler(account);
-            close();
-          }}
-          type="submit"
-          className="px-4 py-1.5 rounded-md text-sm bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors"
-        >
-          Borrar cuenta
-        </button>
+  return <LedgerDialog title="Archivar cuenta" onClose={onClose} busy={mutation.isPending}>
+    <div className="space-y-6 text-primary">
+      <div><p className={walletLabel}>Cuenta seleccionada</p><p className="break-words font-display text-3xl">{account.name}</p></div>
+      <div className="space-y-3 font-mono text-xs leading-relaxed text-muted">
+        <p>La cuenta dejará de estar disponible para nuevos movimientos y ya no sumará al patrimonio de tus cuentas activas.</p>
+        <p>Su saldo y sus movimientos se conservan. Podés consultar su historial activando «Incluir archivadas».</p>
+        <p>No se elimina dinero ni historial. Esta versión no permite reactivar la cuenta.</p>
       </div>
-    </>
-  );
+      {mutation.error != null && <WalletError error={mutation.error} />}
+      <footer className="flex flex-wrap justify-end gap-3 border-t border-primary/[0.14] pt-5">
+        <button autoFocus type="button" disabled={mutation.isPending} className={walletSecondary} onClick={onClose}>Conservar cuenta</button>
+        <button type="button" disabled={mutation.isPending || !account.isActive} className={walletSecondary} onClick={archive}><Archive size={15} aria-hidden="true" />{mutation.isPending ? "Archivando…" : "Archivar cuenta"}</button>
+      </footer>
+    </div>
+  </LedgerDialog>;
 }

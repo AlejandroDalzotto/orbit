@@ -13,12 +13,13 @@
     "windows": [
       {
         "title": "Orbit",
+                "decorations": false,
         "width": 1240,
         "height": 960,
         "center": true,
         "minWidth": 1240,
         "minHeight": 960,
-        "backgroundColor": "#060606"
+        "backgroundColor": "#090909"
       }
     ],
     "security": {

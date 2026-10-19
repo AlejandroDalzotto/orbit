@@ -1,12 +1,30 @@
 <!doctype html>
-<html lang="en">
+<html lang="es" data-theme="dark" data-noise-enabled="true">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri + React + Typescript</title>
+    <meta name="theme-color" content="#090909" />
+    <link rel="icon" type="image/svg+xml" href="/orbit-logo.svg" />
+    <title>Orbit — Finanzas personales</title>
+    <script>
+      try {
+        const theme = localStorage.getItem("orbit-theme");
+        const selected = ["dark", "dim", "cream", "ember"].includes(theme) ? theme : "dark";
+        document.documentElement.dataset.theme = selected;
+        document.documentElement.dataset.noiseEnabled = localStorage.getItem("orbit-noise-enabled") === "false" ? "false" : "true";
+        document.querySelector('meta[name="theme-color"]').content = { dark: "#090909", dim: "#141414", cream: "#f6e9c7", ember: "#191816" }[selected];
+      } catch {
+        document.documentElement.dataset.theme = "dark";
+        document.documentElement.dataset.noiseEnabled = "true";
+      }
+    </script>
+    <style>
+      html,body{margin:0;background:#090909;color:#f1f0ec}
+      html[data-theme="dim"],html[data-theme="dim"] body{background:#141414}
+      html[data-theme="cream"],html[data-theme="cream"] body{background:#f6e9c7;color:#201d18;color-scheme:light}
+      html[data-theme="ember"],html[data-theme="ember"] body{background:#191816;color:#f2e9dd}
+    </style>
   </head>
-
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

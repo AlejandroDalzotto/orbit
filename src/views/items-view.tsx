@@ -1,226 +1,80 @@
-import { useMemo, useState } from "react";
-import { Eye, Pencil, Search, Trash2 } from "lucide-react";
-import { ViewLayout } from "../layouts/view-layout";
-import { useModalStore } from "../stores/modal-store";
-import { Item } from "../definitions/items";
-import { formatCurrency } from "../utils/format-currency";
-import { DeleteItemModal } from "../components/modals/items/delete-item-modal";
-import { AddItemModal } from "../components/modals/items/add-item-modal";
-import PurchasesTab from "../components/purchases-tab";
-import StoresTab from "../components/stores-tab";
-import { useItems } from "../stores/global-data-store";
-
-const ItemRow = ({ item }: { item: Item }) => {
-  const open = useModalStore((state) => state.open);
-  const createdDate = new Date(item.created_at).toLocaleDateString("es-AR");
-
-  return (
-    <tr className="bg-white hover:bg-neutral-50 border-b border-neutral-200 transition-colors">
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded bg-neutral-100 flex items-center justify-center shrink-0 text-sm">📦</div>
-          <div className="min-w-0">
-            <p title={item.name} className="font-medium text-neutral-800 truncate max-w-2xs">
-              {item.name}
-            </p>
-            <div className="flex items-center gap-x-0.5">
-              {item.brand && (
-                <p title={item.brand} className="text-xs text-neutral-500 truncate">
-                  {item.brand}
-                </p>
-              )}
-              {/* separator when both values are present */}
-              {Boolean(item.brand) && Boolean(item.last_purchased_at) ? <p className="text-xs text-neutral-500">•</p> : null}
-              {item.last_purchased_at && (
-                <p title={item.last_purchased_at} className="text-xs text-neutral-500 truncate">
-                  {item.last_purchased_at}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </td>
-      <td className="px-4 py-3 text-sm text-neutral-700">{item.purchase_count}</td>
-      <td className="px-4 py-3 text-sm text-neutral-700">
-        {item.last_price_registered !== undefined ? formatCurrency(item.last_price_registered) : "—"}
-      </td>
-      <td className="px-4 py-3 text-sm text-neutral-600">{createdDate}</td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-1 justify-end">
-          <button
-            onClick={() => open(<ItemDetailsModal item={item} />)}
-            className="p-1.5 rounded text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
-            title="Ver detalles"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => open(<EditItemModal item={item} />)}
-            className="p-1.5 rounded text-neutral-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-            title="Editar"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => open(<DeleteItemModal item={item} />)}
-            className="p-1.5 rounded text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-            title="Eliminar"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-};
-
-// Placeholder modal components
-const ItemDetailsModal = ({ item }: { item: Item }) => (
-  <div className="p-4 bg-white rounded shadow">
-    <h3 className="font-semibold">{item.name}</h3>
-    <p className="text-sm text-neutral-600">{item.brand}</p>
-  </div>
-);
-
-const EditItemModal = ({ item }: { item: Item }) => (
-  <div className="p-4 bg-white rounded shadow">
-    <h3 className="font-semibold">Editar: {item.name}</h3>
-  </div>
-);
+import { useState } from "react";
+import { Archive, ArrowUpRight, Pencil, Plus } from "lucide-react";
+import { useArchiveCatalogItem, useCatalogItems } from "../hooks/use-catalog";
+import { CatalogItemForm } from "../components/catalog-item-form";
+import { CatalogPurchaseHistory } from "../components/catalog-purchase-history";
+import { CatalogArchiveConfirm, CatalogEmpty, CatalogError, CatalogLoading, CatalogPage, CatalogStat, catalogField, catalogLabel, catalogPrimary, catalogSecondary } from "../components/catalog-ui";
 
 export default function ItemsView() {
-  const items = useItems();
-  const open = useModalStore((s) => s.open);
-  const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"items" | "stores" | "purchases">("items");
-
-  // Filter items by name or brand
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((item) => item.name.toLowerCase().includes(q) || (item.brand?.toLowerCase().includes(q) ?? false));
-  }, [items, query]);
-
-  // Stats
-  const stats = useMemo(
-    () => ({
-      totalItems: items.length,
-      totalStores: 12, // Placeholder
-      totalPurchases: 45, // Placeholder
-    }),
-    [items],
-  );
+  const items = useCatalogItems();
+  const archive = useArchiveCatalogItem();
+  const [search, setSearch] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [editor, setEditor] = useState<number | "new" | null>(null);
+  const [archiveId, setArchiveId] = useState<number | null>(null);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [deletePurchaseId, setDeletePurchaseId] = useState<number | null>(null);
+  const [notice, setNotice] = useState("");
+  const all = items.data ?? [];
+  const selected = all.find((item) => item.id === selectedId);
+  const editing = all.find((item) => item.id === editor);
+  const archiving = all.find((item) => item.id === archiveId);
+  const busy = editor !== null || archiveId !== null || purchaseOpen || deletePurchaseId !== null;
+  const filtered = all.filter((item) => (showArchived || !item.isArchived) &&
+    [item.name, item.brand ?? "", item.description ?? ""].some((value) => value.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())),
+  ).sort((a, b) => a.name.localeCompare(b.name, "es"));
 
   return (
-    <ViewLayout>
-      <div className="w-full h-full grid grid-rows-[auto_auto_1fr] gap-y-0">
-        {/* ── Tabs ── */}
-        <div className="border-b border-neutral-200 flex items-center gap-0 px-4">
-          <button
-            onClick={() => setActiveTab("items")}
-            className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === "items" ? "border-blue-500 text-blue-600" : "border-transparent text-neutral-600 hover:text-neutral-900"
-            }`}
-          >
-            Ítems
-          </button>
-          <button
-            onClick={() => setActiveTab("stores")}
-            className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === "stores" ? "border-blue-500 text-blue-600" : "border-transparent text-neutral-600 hover:text-neutral-900"
-            }`}
-          >
-            Tiendas
-          </button>
-          <button
-            onClick={() => setActiveTab("purchases")}
-            className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === "purchases" ? "border-blue-500 text-blue-600" : "border-transparent text-neutral-600 hover:text-neutral-900"
-            }`}
-          >
-            Compras
-          </button>
-        </div>
-
-        {/* ── Items Tab ── */}
-        {activeTab === "items" && (
-          <>
-            {/* Header & Stats */}
-            <div className="border-b border-neutral-200 px-4 py-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-neutral-900">Ítems</h2>
-                <button
-                  onClick={() => open(<AddItemModal />)}
-                  className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
-                >
-                  Nuevo ítem
-                </button>
-              </div>
-
-              {/* Stats Bar */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-neutral-50 rounded p-3">
-                  <p className="text-xs font-medium text-neutral-500 uppercase">Ítems registrados</p>
-                  <p className="text-2xl font-semibold text-neutral-900">{stats.totalItems}</p>
-                </div>
-                <div className="bg-neutral-50 rounded p-3">
-                  <p className="text-xs font-medium text-neutral-500 uppercase">Tiendas</p>
-                  <p className="text-2xl font-semibold text-neutral-900">{stats.totalStores}</p>
-                </div>
-                <div className="bg-neutral-50 rounded p-3">
-                  <p className="text-xs font-medium text-neutral-500 uppercase">Compras totales</p>
-                  <p className="text-2xl font-semibold text-neutral-900">{stats.totalPurchases}</p>
-                </div>
-              </div>
-
-              {/* Search */}
-              <div className="relative max-w-xs">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="w-4 h-4 text-neutral-400" />
-                </span>
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar por nombre o marca..."
-                  className="pl-10 pr-3 py-2 text-sm border border-neutral-200 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-200"
-                />
-              </div>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
-              {filtered.length === 0 ? (
-                <div className="bg-white p-4 text-sm text-neutral-500">
-                  {query ? "No se encontraron ítems que coincidan." : "No hay ítems registrados."}
-                </div>
-              ) : (
-                <table className="w-full border-collapse">
-                  <thead className="bg-neutral-50 sticky top-0">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">Nombre</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">Compras</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">Último precio registrado</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">Creado</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-neutral-600 uppercase">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((item) => (
-                      <ItemRow key={item.id} item={item} />
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* ── Stores Tab Placeholder ── */}
-        {activeTab === "stores" && <StoresTab />}
-
-        {/* ── Purchases Tab ── */}
-        {activeTab === "purchases" && <PurchasesTab />}
+    <CatalogPage title="Ítems" headingLead="Conocé tus" description="Lo que comprás, a lo largo del tiempo. Compará precios por moneda y tienda, sin mezclar importes."
+      action={<button className={catalogPrimary} disabled={busy || !items.data} onClick={() => { setNotice(""); setEditor("new"); }}><Plus size={16} aria-hidden="true" />Nuevo ítem</button>}>
+      <div className="grid grid-cols-3 gap-4">
+        <CatalogStat label="Ítems activos" value={items.data ? all.filter((item) => !item.isArchived).length : undefined} />
+        <CatalogStat label="Compras registradas" value={items.data ? all.reduce((sum, item) => sum + item.purchaseCount, 0) : undefined} />
+        <CatalogStat label="Archivados" value={items.data ? all.filter((item) => item.isArchived).length : undefined} />
       </div>
-    </ViewLayout>
+      <p role="status" className="text-sm text-primary/65">{notice}</p>
+      {(editor === "new" || editing) && <CatalogItemForm key={editor} item={editing} onCancel={() => setEditor(null)} onSaved={(item) => { setEditor(null); setSelectedId(item.id); setNotice(`Ítem «${item.name}» guardado.`); }} />}
+      {archiving && <CatalogArchiveConfirm name={archiving.name} description="No se podrán registrar nuevas compras de este ítem. Podés seguir consultando sus precios anteriores." pending={archive.isPending} error={archive.error}
+        onCancel={() => { setArchiveId(null); archive.reset(); }} onConfirm={() => {
+          if (archive.isPending) return;
+          archive.mutate(archiving.id, { onSuccess: () => { setArchiveId(null); setNotice(`Ítem «${archiving.name}» archivado.`); } });
+        }} />}
+      <div className="flex flex-wrap items-end gap-4 border-y border-primary/14 py-4">
+        <div className="min-w-48 flex-1">
+          <label className={catalogLabel} htmlFor="catalog-item-search">Buscar ítems</label>
+          <input id="catalog-item-search" type="search" className={catalogField} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nombre, marca o descripción…" />
+        </div>
+        <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm text-primary/65">
+          <input type="checkbox" className="size-4 accent-primary" checked={showArchived} onChange={(event) => setShowArchived(event.target.checked)} />Incluir archivados
+        </label>
+      </div>
+      {items.isPending && <CatalogLoading />}
+      {items.isError && <CatalogError error={items.error} retry={() => { void items.refetch(); }} pending={items.isFetching} />}
+      {items.data && <div className="grid items-start gap-6 xl:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.5fr)]">
+        <section aria-label="Lista de ítems" className="min-w-0">
+          <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-muted" aria-live="polite">{items.isFetching ? "Actualizando…" : `${filtered.length} ítems · seleccioná para ver precios`}</p>
+          {filtered.length === 0 ? <CatalogEmpty title={all.length ? "Sin coincidencias" : "Tu primera compra empieza acá"}>{all.length ? "Probá otra búsqueda o incluí los ítems archivados." : "Creá un ítem y registrá sus compras para construir un historial de precios."}</CatalogEmpty> :
+            <ul className="divide-y divide-primary/14 border-y border-primary/14">
+              {filtered.map((item) => <li key={item.id} className={`p-4 transition-colors ${selectedId === item.id ? "bg-primary/5" : "hover:bg-primary/[0.02]"}`}>
+                <button type="button" className="group flex w-full items-start justify-between gap-3 text-left outline-offset-4 focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50" disabled={busy} aria-pressed={selectedId === item.id} aria-label={`Ver historial de ${item.name}`} onClick={() => { setSelectedId(item.id); setNotice(""); }}>
+                  <span className="min-w-0">
+                    <span className="block break-words text-base">{item.name}</span>
+                    <span className="mt-1 block break-words text-xs text-muted">{item.brand || "Sin marca"}</span>
+                    <span className="mt-3 block font-mono text-[10px] text-muted">{item.purchaseCount.toLocaleString("es-AR")} compras{item.isArchived ? " · Archivado" : ""}</span>
+                  </span>
+                  <ArrowUpRight size={16} className="shrink-0 text-primary/35 group-hover:text-primary" aria-hidden="true" />
+                </button>
+                <div className="mt-4 flex gap-2">
+                  <button className={catalogSecondary} disabled={busy} aria-label={`Editar ${item.name}`} onClick={() => { setNotice(""); setEditor(item.id); }}><Pencil size={13} aria-hidden="true" />Editar</button>
+                  {!item.isArchived && <button className={catalogSecondary} disabled={busy} aria-label={`Archivar ${item.name}`} onClick={() => { archive.reset(); setNotice(""); setArchiveId(item.id); }}><Archive size={13} aria-hidden="true" />Archivar</button>}
+                </div>
+              </li>)}
+            </ul>}
+        </section>
+        {selected ? <CatalogPurchaseHistory key={selected.id} item={selected} purchaseOpen={purchaseOpen} deletePurchaseId={deletePurchaseId} onDeletePurchaseChange={setDeletePurchaseId} disabled={editor !== null || archiveId !== null} onPurchaseOpenChange={setPurchaseOpen} onClose={() => setSelectedId(null)} /> :
+          <CatalogEmpty title="Cada precio cuenta">Seleccioná un ítem para consultar su historial por moneda y tienda, o registrá una nueva compra en un gasto existente.</CatalogEmpty>}
+      </div>}
+    </CatalogPage>
   );
 }
